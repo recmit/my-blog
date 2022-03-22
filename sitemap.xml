@@ -1,20 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd" xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 <url>
-<loc>https://recmit.github.io/my-blog/2022/03/19/grades-analysis.html</loc>
+<loc>davidrecmit.com/2022/03/19/grades-analysis.html</loc>
 <lastmod>2022-03-19T00:00:00-05:00</lastmod>
 </url>
 <url>
-<loc>https://recmit.github.io/my-blog/2022/03/19/podcasts-recommender.html</loc>
+<loc>davidrecmit.com/2022/03/19/podcasts-recommender.html</loc>
 <lastmod>2022-03-19T00:00:00-05:00</lastmod>
 </url>
 <url>
-<loc>https://recmit.github.io/my-blog/about/</loc>
+<loc>davidrecmit.com/about/</loc>
 </url>
 <url>
-<loc>https://recmit.github.io/my-blog/</loc>
+<loc>davidrecmit.com/</loc>
 </url>
 <url>
-<loc>https://recmit.github.io/my-blog/search/</loc>
+<loc>davidrecmit.com/search/</loc>
 </url>
 </urlset>

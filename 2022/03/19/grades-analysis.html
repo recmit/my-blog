@@ -10,17 +10,17 @@
 <meta property="og:locale" content="en_US" />
 <meta name="description" content="We explore the possible effects of student groups on final grades. For this we implement hypothesis tests from three different paradigms: the permutation test, a semi-parametric bootstrap test, and ANOVA. As part of the analysis we compare the different tests through simulation." />
 <meta property="og:description" content="We explore the possible effects of student groups on final grades. For this we implement hypothesis tests from three different paradigms: the permutation test, a semi-parametric bootstrap test, and ANOVA. As part of the analysis we compare the different tests through simulation." />
-<link rel="canonical" href="https://recmit.github.io/my-blog/2022/03/19/grades-analysis.html" />
-<meta property="og:url" content="https://recmit.github.io/my-blog/2022/03/19/grades-analysis.html" />
+<link rel="canonical" href="davidrecmit.com/2022/03/19/grades-analysis.html" />
+<meta property="og:url" content="davidrecmit.com/2022/03/19/grades-analysis.html" />
 <meta property="og:site_name" content="David Recio’s Blog" />
 <meta property="og:type" content="article" />
 <meta property="article:published_time" content="2022-03-19T00:00:00-05:00" />
 <meta name="twitter:card" content="summary" />
 <meta property="twitter:title" content="What is the effect of flipped classroom groups on grades?" />
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2022-03-19T00:00:00-05:00","datePublished":"2022-03-19T00:00:00-05:00","description":"We explore the possible effects of student groups on final grades. For this we implement hypothesis tests from three different paradigms: the permutation test, a semi-parametric bootstrap test, and ANOVA. As part of the analysis we compare the different tests through simulation.","headline":"What is the effect of flipped classroom groups on grades?","mainEntityOfPage":{"@type":"WebPage","@id":"https://recmit.github.io/my-blog/2022/03/19/grades-analysis.html"},"url":"https://recmit.github.io/my-blog/2022/03/19/grades-analysis.html"}</script>
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2022-03-19T00:00:00-05:00","datePublished":"2022-03-19T00:00:00-05:00","description":"We explore the possible effects of student groups on final grades. For this we implement hypothesis tests from three different paradigms: the permutation test, a semi-parametric bootstrap test, and ANOVA. As part of the analysis we compare the different tests through simulation.","headline":"What is the effect of flipped classroom groups on grades?","mainEntityOfPage":{"@type":"WebPage","@id":"davidrecmit.com/2022/03/19/grades-analysis.html"},"url":"davidrecmit.com/2022/03/19/grades-analysis.html"}</script>
 <!-- End Jekyll SEO tag -->
-<link rel="stylesheet" href="/my-blog/assets/css/style.css"><link type="application/atom+xml" rel="alternate" href="https://recmit.github.io/my-blog/feed.xml" title="David Recio's Blog" /><link rel="shortcut icon" type="image/x-icon" href="/my-blog/images/favicon.ico"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Primer/15.2.0/primer.css" integrity="sha512-xTz2ys4coGAOz8vuV1NcQBkgVmKhsSEtjbqyMJbBHRplFuvKIUo6xhLHpAyPt9mfR6twHJgn9OgVLuqOvjeBhg==" crossorigin="anonymous" />
+<link rel="stylesheet" href="/assets/css/style.css"><link type="application/atom+xml" rel="alternate" href="davidrecmit.com/feed.xml" title="David Recio's Blog" /><link rel="shortcut icon" type="image/x-icon" href="/images/favicon.ico"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Primer/15.2.0/primer.css" integrity="sha512-xTz2ys4coGAOz8vuV1NcQBkgVmKhsSEtjbqyMJbBHRplFuvKIUo6xhLHpAyPt9mfR6twHJgn9OgVLuqOvjeBhg==" crossorigin="anonymous" />
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.14.0/css/all.min.css" integrity="sha512-1PKOgIY59xJ8Co8+NE6FZ+LOAZKjy+KY8iq0G4B3CyeY6wYHN3yt9PW0XpSriVlkMXe40PTKnXrLnZ9+fkDaog==" crossorigin="anonymous" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.12.0/katex.min.css" integrity="sha512-h7nl+xz8wgDlNM4NqKEM4F1NkIRS17M9+uJwIGwuo8vGqIl4BhuCKdxjWEINm+xyrUjNCnK5dCrhM0sj+wTIXw==" crossorigin="anonymous" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.12.0/katex.min.js" integrity="sha512-/CMIhXiDA3m2c9kzRyd97MTb3MC6OVnx4TElQ7fkkoRghwDf6gi41gaT1PwF270W6+J60uTmwgeRpNpJdRV6sg==" crossorigin="anonymous"></script>
@@ -71,7 +71,7 @@ window.onload = wrap_img;
 </head>
 <body><header class="site-header">
 
-  <div class="wrapper"><a class="site-title" rel="author" href="/my-blog/">David Recio&#39;s Blog</a><nav class="site-nav">
+  <div class="wrapper"><a class="site-title" rel="author" href="/">David Recio&#39;s Blog</a><nav class="site-nav">
         <input type="checkbox" id="nav-trigger" class="nav-trigger" />
         <label for="nav-trigger">
           <span class="menu-icon">
@@ -81,7 +81,7 @@ window.onload = wrap_img;
           </span>
         </label>
 
-        <div class="trigger"><a class="page-link" href="/my-blog/about/">About Me</a><a class="page-link" href="/my-blog/search/">Search</a></div>
+        <div class="trigger"><a class="page-link" href="/about/">About Me</a><a class="page-link" href="/search/">Search</a></div>
       </nav></div>
 </header>
 <main class="page-content" aria-label="Content">
@@ -2391,21 +2391,21 @@ dtype: float64</pre>
 
 
 
-  </div><a class="u-url" href="/my-blog/2022/03/19/grades-analysis.html" hidden></a>
+  </div><a class="u-url" href="/2022/03/19/grades-analysis.html" hidden></a>
 </article>
 
       </div>
     </main><footer class="site-footer h-card">
-  <data class="u-url" href="/my-blog/"></data>
+  <data class="u-url" href="/"></data>
 
   <div class="wrapper">
 
     <div class="footer-col-wrapper">
       <div class="footer-col">
         <p class="feed-subscribe">
-          <a href="/my-blog/feed.xml">
+          <a href="/feed.xml">
             <svg class="svg-icon orange">
-              <use xlink:href="/my-blog/assets/minima-social-icons.svg#rss"></use>
+              <use xlink:href="/assets/minima-social-icons.svg#rss"></use>
             </svg><span>Subscribe</span>
           </a>
         </p>
@@ -2415,7 +2415,7 @@ dtype: float64</pre>
       </div>
     </div>
 
-    <div class="social-links"><ul class="social-media-list"><li><a rel="me" href="https://github.com/recmit" target="_blank" title="recmit"><svg class="svg-icon grey"><use xlink:href="/my-blog/assets/minima-social-icons.svg#github"></use></svg></a></li><li><a rel="me" href="https://www.linkedin.com/in/david-recio-828b60228" target="_blank" title="david-recio-828b60228"><svg class="svg-icon grey"><use xlink:href="/my-blog/assets/minima-social-icons.svg#linkedin"></use></svg></a></li></ul>
+    <div class="social-links"><ul class="social-media-list"><li><a rel="me" href="https://github.com/recmit" target="_blank" title="recmit"><svg class="svg-icon grey"><use xlink:href="/assets/minima-social-icons.svg#github"></use></svg></a></li><li><a rel="me" href="https://www.linkedin.com/in/david-recio-828b60228" target="_blank" title="david-recio-828b60228"><svg class="svg-icon grey"><use xlink:href="/assets/minima-social-icons.svg#linkedin"></use></svg></a></li></ul>
 </div>
 
   </div>
