@@ -1,0 +1,1933 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="twitter:card" content="summary_large_image" /><!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>The Titanic has a Leak | David Recio’s Blog</title>
+<meta name="generator" content="Jekyll v4.1.1" />
+<meta property="og:title" content="The Titanic has a Leak" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="We will explore a source of data leakage in the popular Titanic competition on Kaggle: Passengers traveling together have similar survival outcomes and this correlation can be used to make predictions for the test set in a way that wouldn’t be possible in reality. To prevent the leakage we implement a leak-proof cross-validation. We compare the accuracy of an XGBoost classifier to various baselines to investigate which role, if any, the leakage is playing in the predictions of our classifier." />
+<meta property="og:description" content="We will explore a source of data leakage in the popular Titanic competition on Kaggle: Passengers traveling together have similar survival outcomes and this correlation can be used to make predictions for the test set in a way that wouldn’t be possible in reality. To prevent the leakage we implement a leak-proof cross-validation. We compare the accuracy of an XGBoost classifier to various baselines to investigate which role, if any, the leakage is playing in the predictions of our classifier." />
+<link rel="canonical" href="david-recio.com/2022/04/11/titanic-leak.html" />
+<meta property="og:url" content="david-recio.com/2022/04/11/titanic-leak.html" />
+<meta property="og:site_name" content="David Recio’s Blog" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2022-04-11T00:00:00-05:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="The Titanic has a Leak" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2022-04-11T00:00:00-05:00","datePublished":"2022-04-11T00:00:00-05:00","description":"We will explore a source of data leakage in the popular Titanic competition on Kaggle: Passengers traveling together have similar survival outcomes and this correlation can be used to make predictions for the test set in a way that wouldn’t be possible in reality. To prevent the leakage we implement a leak-proof cross-validation. We compare the accuracy of an XGBoost classifier to various baselines to investigate which role, if any, the leakage is playing in the predictions of our classifier.","headline":"The Titanic has a Leak","mainEntityOfPage":{"@type":"WebPage","@id":"david-recio.com/2022/04/11/titanic-leak.html"},"url":"david-recio.com/2022/04/11/titanic-leak.html"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/assets/css/style.css"><link type="application/atom+xml" rel="alternate" href="david-recio.com/feed.xml" title="David Recio's Blog" /><link rel="shortcut icon" type="image/x-icon" href="/images/favicon.ico"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Primer/15.2.0/primer.css" integrity="sha512-xTz2ys4coGAOz8vuV1NcQBkgVmKhsSEtjbqyMJbBHRplFuvKIUo6xhLHpAyPt9mfR6twHJgn9OgVLuqOvjeBhg==" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.14.0/css/all.min.css" integrity="sha512-1PKOgIY59xJ8Co8+NE6FZ+LOAZKjy+KY8iq0G4B3CyeY6wYHN3yt9PW0XpSriVlkMXe40PTKnXrLnZ9+fkDaog==" crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.12.0/katex.min.css" integrity="sha512-h7nl+xz8wgDlNM4NqKEM4F1NkIRS17M9+uJwIGwuo8vGqIl4BhuCKdxjWEINm+xyrUjNCnK5dCrhM0sj+wTIXw==" crossorigin="anonymous" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.12.0/katex.min.js" integrity="sha512-/CMIhXiDA3m2c9kzRyd97MTb3MC6OVnx4TElQ7fkkoRghwDf6gi41gaT1PwF270W6+J60uTmwgeRpNpJdRV6sg==" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.12.0/contrib/auto-render.min.js" integrity="sha512-Do7uJAaHZm5OLrIv/yN4w0iG1dbu01kzdMNnFfu/mAqgUk6Nniv2JYHcwH+cNwjqgLcqcuBBk+JRvprLVI8azg==" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js" integrity="sha512-0doc9hKxR3PYwso42RD1p5ySZpzzuDiOwMrdCEh2WdJZCjcmFKc/wEnL+z8fBQrnHoiNWbo+3fiGkOYXBdQp4A==" crossorigin="anonymous"></script>
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+        renderMathInElement( document.body, {
+        delimiters: [
+            {left: "$$", right: "$$", display: true},
+            {left: "[%", right: "%]", display: true},
+            {left: "$", right: "$", display: false}
+        ]}
+        );
+    });
+    </script>
+
+
+<script>
+function wrap_img(fn) {
+    if (document.attachEvent ? document.readyState === "complete" : document.readyState !== "loading") {
+        var elements = document.querySelectorAll(".post img");
+        Array.prototype.forEach.call(elements, function(el, i) {
+            if (el.getAttribute("title") && (el.className != "emoji")) {
+                const caption = document.createElement('figcaption');
+                var node = document.createTextNode(el.getAttribute("title"));
+                caption.appendChild(node);
+                const wrapper = document.createElement('figure');
+                wrapper.className = 'image';
+                el.parentNode.insertBefore(wrapper, el);
+                el.parentNode.removeChild(el);
+                wrapper.appendChild(el);
+                wrapper.appendChild(caption);
+            }
+        });
+    } else { document.addEventListener('DOMContentLoaded', fn); }
+}
+window.onload = wrap_img;
+</script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function(){
+    // add link icon to anchor tags
+    var elem = document.querySelectorAll(".anchor-link")
+    elem.forEach(e => (e.innerHTML = '<i class="fas fa-link fa-xs"></i>'));
+    });
+</script>
+</head>
+<body><header class="site-header">
+
+  <div class="wrapper"><a class="site-title" rel="author" href="/">David Recio&#39;s Blog</a><nav class="site-nav">
+        <input type="checkbox" id="nav-trigger" class="nav-trigger" />
+        <label for="nav-trigger">
+          <span class="menu-icon">
+            <svg viewBox="0 0 18 15" width="18px" height="15px">
+              <path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.032C17.335,0,18,0.665,18,1.484L18,1.484z M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516L18,7.516z M18,13.516C18,14.335,17.335,15,16.516,15H1.484 C0.665,15,0,14.335,0,13.516l0,0c0-0.82,0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516L18,13.516z"/>
+            </svg>
+          </span>
+        </label>
+
+        <div class="trigger"><a class="page-link" href="/about/">About Me</a><a class="page-link" href="/search/">Search</a></div>
+      </nav></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title p-name" itemprop="name headline">The Titanic has a Leak</h1><p class="page-description">We will explore a source of data leakage in the popular Titanic competition on Kaggle: Passengers traveling together have similar survival outcomes and this correlation can be used to make predictions for the test set in a way that wouldn't be possible in reality. To prevent the leakage we implement a leak-proof cross-validation. We compare the accuracy of an XGBoost classifier to various baselines to investigate which role, if any, the leakage is playing in the predictions of our classifier.</p><p class="post-meta post-meta-title"><time class="dt-published" datetime="2022-04-11T00:00:00-05:00" itemprop="datePublished">
+        Apr 11, 2022
+      </time>
+       <!-- • <span class="read-time" title="Estimated read time">
+    
+    
+      35 min read
+    
+</span>-->
+    </p>
+
+    
+
+    
+      
+        <div class="pb-5 d-flex flex-justify-center">
+          
+          
+          
+          
+        </div>
+      </header>
+
+  <div class="post-content e-content" itemprop="articleBody">
+    <ul id="toc" class="section-nav">
+<li class="toc-entry toc-h2"><a href="#What-is-leakage?">What is leakage? </a></li>
+<li class="toc-entry toc-h2"><a href="#Where-is-the-leakage?">Where is the leakage? </a></li>
+<li class="toc-entry toc-h2"><a href="#Why-does-the-leakage-matter?">Why does the leakage matter? </a></li>
+<li class="toc-entry toc-h2"><a href="#How-do-we-plug-the-leak?">How do we plug the leak? </a></li>
+<li class="toc-entry toc-h2"><a href="#Here-is-what-we-will-do">Here is what we will do </a></li>
+<li class="toc-entry toc-h2"><a href="#Baselines">Baselines </a>
+<ul>
+<li class="toc-entry toc-h3"><a href="#Enhanced-gender-model">Enhanced gender model </a></li>
+<li class="toc-entry toc-h3"><a href="#Group-survival-model">Group survival model </a></li>
+</ul>
+</li>
+<li class="toc-entry toc-h2"><a href="#Our-"exemplary"-model">Our &quot;exemplary&quot; model </a>
+<ul>
+<li class="toc-entry toc-h3"><a href="#Feature-engineering-and-categorical-encoding">Feature engineering and categorical encoding </a></li>
+<li class="toc-entry toc-h3"><a href="#XGBoost-classifier-and-hyperparameter-tuning">XGBoost classifier and hyperparameter tuning </a></li>
+</ul>
+</li>
+<li class="toc-entry toc-h2"><a href="#Cross-validation">Cross-validation </a>
+<ul>
+<li class="toc-entry toc-h3"><a href="#Identifying-the-groups">Identifying the groups </a></li>
+<li class="toc-entry toc-h3"><a href="#Cross-validation-splits">Cross-validation splits </a></li>
+<li class="toc-entry toc-h3"><a href="#Nested-cross-validation">Nested cross-validation </a></li>
+</ul>
+</li>
+<li class="toc-entry toc-h2"><a href="#How-well-does-our-classifier-do-when-we-prevent-leakage?">How well does our classifier do when we prevent leakage? </a></li>
+<li class="toc-entry toc-h2"><a href="#Does-our-model-rely-on-leakage-if-we-give-it-the-chance?">Does our model rely on leakage if we give it the chance? </a></li>
+<li class="toc-entry toc-h2"><a href="#Conclusions">Conclusions </a></li>
+<li class="toc-entry toc-h2"><a href="#P.S.-Is-the-Kaggle-test-set-random?">P.S. Is the Kaggle test set random? </a></li>
+</ul><!--
+#################################################
+### THIS FILE WAS AUTOGENERATED! DO NOT EDIT! ###
+#################################################
+# file to edit: _notebooks/2022-04-11-titanic-leak.ipynb
+-->
+
+<div class="container" id="notebook-container">
+        
+    
+    
+<div class="cell border-box-sizing code_cell rendered">
+<details class="description">
+      <summary class="btn btn-sm" data-open="Hide Code" data-close="Show Code"></summary>
+        <p></p>
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">sklearn.model_selection</span> <span class="kn">import</span> <span class="n">cross_validate</span><span class="p">,</span> <span class="n">GridSearchCV</span><span class="p">,</span> <span class="n">StratifiedKFold</span><span class="p">,</span> <span class="n">StratifiedGroupKFold</span>
+<span class="kn">from</span> <span class="nn">sklearn.base</span> <span class="kn">import</span> <span class="n">BaseEstimator</span><span class="p">,</span> <span class="n">ClassifierMixin</span>
+<span class="kn">from</span> <span class="nn">sklearn.pipeline</span> <span class="kn">import</span> <span class="n">Pipeline</span>
+<span class="kn">from</span> <span class="nn">sklearn.experimental</span> <span class="kn">import</span> <span class="n">enable_iterative_imputer</span>  <span class="c1"># noqa</span>
+<span class="kn">from</span> <span class="nn">sklearn.impute</span> <span class="kn">import</span> <span class="n">IterativeImputer</span>
+<span class="kn">from</span> <span class="nn">sklearn.preprocessing</span> <span class="kn">import</span> <span class="n">OrdinalEncoder</span>
+<span class="kn">import</span> <span class="nn">xgboost</span> <span class="k">as</span> <span class="nn">xgb</span>
+<span class="kn">import</span> <span class="nn">networkx</span> <span class="k">as</span> <span class="nn">nx</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+    </details>
+</div>
+    
+
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="What-is-leakage?">
+<a class="anchor" href="#What-is-leakage?" aria-hidden="true"><span class="octicon octicon-link"></span></a>What is leakage?<a class="anchor-link" href="#What-is-leakage?"> </a>
+</h2>
+<p>Training a machine learning model to make predictions is tricky (especially about the future!). One of the main issues is <a href="https://en.wikipedia.org/wiki/Overfitting">overfitting</a>: If left unchecked, models will tend to fit the training data too specifically in a way that doesn't actually generalize to "future data".</p>
+<p>This is why we always set aside a subset of the data (the <strong>test set</strong>) to evaluate the model predictions. The model never gets to see the test data during training, to simulate new data like the data the model will have to deal with when in real deployment. At first this seems like a foolproof method to gauge how well the model will do in practice, assuming that the "future data" in the context the model needs to operate arises from the same probability distribution as our current data (that is a whole other issue, see <a href="https://docs.microsoft.com/en-us/azure/machine-learning/how-to-monitor-datasets?tabs=python">data drift</a>).</p>
+<p>However, in practice there might be <strong>unintended correlations</strong> between the test set and the data we used to train the model (the <strong>training set</strong>). Those correlations might allow us to make predictions based on information which we wouldn't actually have access to at prediction time in reality. We call this phenomenon <strong>data leakage</strong>, because "future" information is accidentally leaking from the test set to the training set. This can lead to dramatically overestimating the true model performance. Even worse, the model could end up mostly relying on the leakage for predictions, to the detriment of legitimate signals. This would make it essentially useless in a real deployment.</p>
+<p>This somewhat abstract description will become clearer once we look at a specific instance of leakage.</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="Where-is-the-leakage?">
+<a class="anchor" href="#Where-is-the-leakage?" aria-hidden="true"><span class="octicon octicon-link"></span></a>Where is the leakage?<a class="anchor-link" href="#Where-is-the-leakage?"> </a>
+</h2>
+<p>In the case of the famous <strong>Titanic</strong> <a href="https://www.kaggle.com/c/titanic">competition</a> there is a major source of information leakage. <strong>Groups of women and children</strong> traveling together tend to either all live or all die, simply because they tended to stay together. Women and children were famously prioritized on the lifeboats, while adult men were separated from their families.</p>
+<p>This is an instance of data leakage because we wouldn't have known which families were going to survive before the Titanic sank, yet it provides us with a lot of information on passenger survival in our data. Strictly speaking, it is open to debate what exactly constitutes leakage in a one-time event such as in the Titanic disaster. However, if we imagine having to make a prediction about another ship sinking in similar circumstances, it seems unreasonable to assume that we would have information on which families would survive <em>beyond the information on which passengers would survive</em>. In contrast to survival per passenger class, for instance, family survival is seems to be subject to random events in a way that is not generalizable (what could be called random noise).</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="Why-does-the-leakage-matter?">
+<a class="anchor" href="#Why-does-the-leakage-matter?" aria-hidden="true"><span class="octicon octicon-link"></span></a>Why does the leakage matter?<a class="anchor-link" href="#Why-does-the-leakage-matter?"> </a>
+</h2>
+<p>I am not the first one to point out that family survival is a major predictor of individual passenger survival. As far as I know, however, the extent and importance of the leakage has not been thoroughly investigated yet.</p>
+<p>There is no doubt that using the leakage gives an important advantage in the Kaggle Titanic competition. Most passenger groups (which we will specify below) have in fact been separated in the train-test split. This is not a particular characteristic of the Kaggle test set. Instead, it is statistically a near-certainty given the number of groups and the group sizes, as long as the test set makes up a third of the data.</p>
+<p>We can distinguish three ways in which the leakage has been used on the Kaggle competition over the years:</p>
+<ul>
+<li>
+<a href="https://www.kaggle.com/code/cdeotte/titanic-using-name-only-0-81818/notebook">Chris Deotte</a> and others have already observed that one can get very good results (better than many sophisticated approaches) just by making predictions with a very simple rule <strong>using family survival directly</strong> (but not explicitly identifying it as an example of data leakage, to the best of my knowledge). The rule is the following: Just predict that all males die and all females live, except for boys whose family survived (who are predicted to live instead) and females whose family died (who are predicted to die instead). We will implement this model bellow and compare its accuracy with other approaches.</li>
+<li>People like <a href="https://www.kaggle.com/code/erikbruin/titanic-2nd-degree-families-and-majority-voting/report">Erik Bruin</a> have also noticed that adding "family survival" as an <strong>engineered feature</strong> helps train models. This basically amounts to <a href="https://maxhalford.github.io/blog/target-encoding/">target encoding</a> of an engineered "family group feature", where the groups are replaced by the mean survival of the group within the training set (or NA if the group is not represented in the training set).</li>
+<li>Finally, beyond the explicit uses of the data leakage listed above, it is conceivable that many classifiers <strong>use it implicitly and inadvertently</strong>. Groups traveling together can be identified from features such as passenger class, port of embarkation, ticket number, cabin number, number of family members on board (children, parents, siblings, spouses). The 'Age' feature as well as the engineered "title feature" can be used to identify children.</li>
+</ul>
+<p>I want to make clear that I am not suggesting any of the above constitutes cheating. It doesn't go against the rules of the competition (I believe) and, in any case, the Titanic competition is intended for people who are relatively new to machine learning (such as myself) to practice with an interesting problem and a manageable data set.</p>
+<p>That said, I think it is interesting to investigate how pervasive this leakage is. That is to say, how much do classifiers rely on this data leakage, whether explicitly or implicitly? And how well can we do without it?</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="How-do-we-plug-the-leak?">
+<a class="anchor" href="#How-do-we-plug-the-leak?" aria-hidden="true"><span class="octicon octicon-link"></span></a>How do we plug the leak?<a class="anchor-link" href="#How-do-we-plug-the-leak?"> </a>
+</h2>
+<p>There is a simple solution. We just need to create an alternative test set which, unlike the Kaggle test set, doesn't contain any <em>partial</em> passenger groups. In other words, groups are either fully in the test set or fully in the training set. We will call such a train-test split <strong>leak-proof</strong>.</p>
+<p>Getting slightly more sophisticated, we want to perform multiple train-test leak-proof splits. Taking the mean accuracy over multiple splits allows us to reduce the error in estimating the model performance. This process is called <strong>cross-validation</strong> (often abbreviated "CV").</p>
+<p>We will go into more detail bellow.</p>
+<p><strong>Warning</strong>: To do our custom train-test splits we need the full survival outcomes for <em>all</em> passengers. While this is publicly available data, I was reluctant to make it even easier to find it for people competing in the Kaggle competition. However, I think that on balance it is worth exploring the questions considered here, at the risk of potentially making the full data easier to access. Frankly, it seems that the cat is out of the bag, considering the large number of perfect scores on the leaderboard. In fact, the place where I found the full data is actually on Kaggle! There was an external link to the data surreptitiously hidden at the end of a long notebook, where it was quietly used to make a submission (with a perfect score, needless to say).</p>
+<p>To avoid "spoilers" about the Kaggle test set, I will try to reveal as little specifics on the test set as possible. The overall survival rate does appear later on, but that can be figured out easily by submitting an "everyone dies" prediction.</p>
+
+</div>
+</div>
+</div>
+    
+    
+<div class="cell border-box-sizing code_cell rendered">
+<details class="description">
+      <summary class="btn btn-sm" data-open="Hide Code" data-close="Show Code"></summary>
+        <p></p>
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># This is the full data with the survival outcomes of all passengers</span>
+<span class="n">full_data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s1">'full.csv'</span><span class="p">)</span>
+<span class="n">X</span> <span class="o">=</span> <span class="n">full_data</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="s1">'Survived'</span><span class="p">)</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">full_data</span><span class="p">[</span><span class="s1">'Survived'</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+<span class="n">kaggle_train_idx</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">RangeIndex</span><span class="p">(</span><span class="mi">891</span><span class="p">)</span>
+<span class="n">kaggle_test_idx</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">RangeIndex</span><span class="p">(</span><span class="mi">891</span><span class="p">,</span> <span class="mi">1309</span><span class="p">)</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+    </details>
+</div>
+    
+
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="Here-is-what-we-will-do">
+<a class="anchor" href="#Here-is-what-we-will-do" aria-hidden="true"><span class="octicon octicon-link"></span></a>Here is what we will do<a class="anchor-link" href="#Here-is-what-we-will-do"> </a>
+</h2>
+<p>We will address two questions:</p>
+<ul>
+<li>If we prevent leakage using leak-proof train-test splits as mentioned above, how well can we predict passenger survival? More concretely, could we do better than a simple baseline if we can't use the leakage?</li>
+<li>How do we estimate to which extent a specific classifier is "secretly" using the leakage?</li>
+</ul>
+<p>For the <strong>first point</strong>, we will create an "exemplary" classifier and evaluate it using a leak-proof cross-validation. We will compare its accuracy to that of some <strong>simple baselines</strong>, to see how well it does once the leakage has been prevented. For the classifier we will use the popular <strong>XGBoost</strong> classifier. To get the most out of the classifier, we will also perform <strong>feature engineering</strong> and <strong>hyperparameter tuning</strong>.</p>
+<p>The <strong>second point</strong> is actually hard to answer definitively. We will <strong>compare the accuracy</strong> of a classifier under a <strong>leak-proof cross-validation</strong> and a <strong>"leaky" cross-validation</strong> (i.e. a regular cross-validation in which the groups can be divided in the train-test split). If a classifier does worse under the former than under the latter, this suggests that the classifier was using the leakage. However, we need to be cautious about drawing conclusions just from that, because the leak-proof train-test splits might make it "harder" to generalize from the training set to the test set in more subtle ways. To dig a little deeper, we will compare the prediction accuracy on the <strong>solo travelers</strong>, i.e. passengers who are traveling alone (to the best of our knowledge).</p>
+<p><strong>Outline:</strong></p>
+<ul>
+<li>We will start by implementing the baseline classifiers and the XGBoost classifier.</li>
+<li>Then, we will implement the cross-validation function, which will involve a nested cross-validation because of the hyperparameter search.</li>
+<li>Finally, we will compute the accuracy of our classifier and of the baselines under various cross-validation schemes and discuss the results.</li>
+</ul>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="Baselines">
+<a class="anchor" href="#Baselines" aria-hidden="true"><span class="octicon octicon-link"></span></a>Baselines<a class="anchor-link" href="#Baselines"> </a>
+</h2>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h3 id="Enhanced-gender-model">
+<a class="anchor" href="#Enhanced-gender-model" aria-hidden="true"><span class="octicon octicon-link"></span></a>Enhanced gender model<a class="anchor-link" href="#Enhanced-gender-model"> </a>
+</h3>
+<p>Is is well-known that 'Sex' is the most important feature, given that over $70\%$ of females survived, while less than $20\%$ of males did. This suggests the following rule: females should be predicted to survive and males to perish. This results in the <strong>gender model</strong>, the most commonly used baseline and provided by Kaggle as the example submission.</p>
+<p>However, looking at the following table we can easily improve upon that baseline. (Note that I <strong>restricted the table to the Kaggle training set</strong> to avoid "spoilers" about the test set.)</p>
+
+</div>
+</div>
+</div>
+    
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">full_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">kaggle_train_idx</span><span class="p">]</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s1">'Sex'</span><span class="p">,</span> <span class="s1">'Pclass'</span><span class="p">,</span> <span class="s1">'Embarked'</span><span class="p">])[</span><span class="s1">'Survived'</span><span class="p">]</span><span class="o">.</span><span class="n">agg</span><span class="p">([</span><span class="s1">'mean'</span><span class="p">,</span> <span class="s1">'count'</span><span class="p">])</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+<div class="output_area">
+
+
+<div class="output_html rendered_html output_subarea output_execute_result">
+<div>
+<style scoped="">
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th></th>
+      <th></th>
+      <th>mean</th>
+      <th>count</th>
+    </tr>
+    <tr>
+      <th>Sex</th>
+      <th>Pclass</th>
+      <th>Embarked</th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th rowspan="9" valign="top">female</th>
+      <th rowspan="3" valign="top">1</th>
+      <th>C</th>
+      <td>0.976744</td>
+      <td>43</td>
+    </tr>
+    <tr>
+      <th>Q</th>
+      <td>1.000000</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>S</th>
+      <td>0.958333</td>
+      <td>48</td>
+    </tr>
+    <tr>
+      <th rowspan="3" valign="top">2</th>
+      <th>C</th>
+      <td>1.000000</td>
+      <td>7</td>
+    </tr>
+    <tr>
+      <th>Q</th>
+      <td>1.000000</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <th>S</th>
+      <td>0.910448</td>
+      <td>67</td>
+    </tr>
+    <tr>
+      <th rowspan="3" valign="top">3</th>
+      <th>C</th>
+      <td>0.652174</td>
+      <td>23</td>
+    </tr>
+    <tr>
+      <th>Q</th>
+      <td>0.727273</td>
+      <td>33</td>
+    </tr>
+    <tr>
+      <th>S</th>
+      <td>0.375000</td>
+      <td>88</td>
+    </tr>
+    <tr>
+      <th rowspan="9" valign="top">male</th>
+      <th rowspan="3" valign="top">1</th>
+      <th>C</th>
+      <td>0.404762</td>
+      <td>42</td>
+    </tr>
+    <tr>
+      <th>Q</th>
+      <td>0.000000</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>S</th>
+      <td>0.354430</td>
+      <td>79</td>
+    </tr>
+    <tr>
+      <th rowspan="3" valign="top">2</th>
+      <th>C</th>
+      <td>0.200000</td>
+      <td>10</td>
+    </tr>
+    <tr>
+      <th>Q</th>
+      <td>0.000000</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>S</th>
+      <td>0.154639</td>
+      <td>97</td>
+    </tr>
+    <tr>
+      <th rowspan="3" valign="top">3</th>
+      <th>C</th>
+      <td>0.232558</td>
+      <td>43</td>
+    </tr>
+    <tr>
+      <th>Q</th>
+      <td>0.076923</td>
+      <td>39</td>
+    </tr>
+    <tr>
+      <th>S</th>
+      <td>0.128302</td>
+      <td>265</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+    
+
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>We see that there is one glaring exception to the rule: Females who traveled in 3rd class <em>and</em> who boarded in Southampton have a survival rate of under $40\%$ (and thus should be predicted to die). That actually applies to a pretty large number of passengers, namely 129 in the whole data set.</p>
+<p>We will slightly modify the gender baseline by adding the exception that females are predicted <em>not</em> to survive if they are in 3rd class <em>and</em> they embarked in Southampton ('Embarked' is 'S'). Let's call this the <strong>enhanced gender model</strong>.</p>
+<p>Note that this model does not make use of the leakage and thus we will think of it as the <strong>leakage-free baseline</strong>.</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h3 id="Group-survival-model">
+<a class="anchor" href="#Group-survival-model" aria-hidden="true"><span class="octicon octicon-link"></span></a>Group survival model<a class="anchor-link" href="#Group-survival-model"> </a>
+</h3>
+<p>On the other hand, what we will call the <strong>group survival model</strong> makes full use of the leakage. It is in fact an extension of the gender model which has already been implemented by <a href="https://www.kaggle.com/code/cdeotte/titanic-using-name-only-0-81818/notebook">Chris Deotte</a>. The rule here is to predict that females survive <em>unless</em> all women and children in their group <em>died</em> (within the training set) and that boys die <em>unless</em> all women and children in their group <em>survived</em> (within the training set).</p>
+<p>We will implement all three baseline models mentioned above as custom classifiers following the scikit-learn API.</p>
+
+</div>
+</div>
+</div>
+    
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="k">class</span> <span class="nc">GenderClassifier</span><span class="p">(</span><span class="n">BaseEstimator</span><span class="p">,</span> <span class="n">ClassifierMixin</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">groups</span><span class="p">):</span>
+        <span class="k">pass</span>
+    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">X</span><span class="p">[</span><span class="s1">'Female/Boy/Man'</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+    
+<span class="k">class</span> <span class="nc">EnhancedGenderClassifier</span><span class="p">(</span><span class="n">BaseEstimator</span><span class="p">,</span> <span class="n">ClassifierMixin</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">groups</span><span class="p">):</span>
+        <span class="k">pass</span>
+    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
+        <span class="n">is_woman</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="s1">'Female/Boy/Man'</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span>
+        <span class="c1"># This assumes that 2 corresponds to 'S'!</span>
+        <span class="n">exceptions</span> <span class="o">=</span> <span class="p">(</span><span class="n">X</span><span class="p">[</span><span class="s1">'Embarked Encoded'</span><span class="p">]</span> <span class="o">==</span> <span class="mi">2</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">X</span><span class="p">[</span><span class="s1">'Pclass'</span><span class="p">]</span> <span class="o">==</span> <span class="mi">3</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">is_woman</span> <span class="o">&amp;</span> <span class="o">~</span><span class="n">exceptions</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+    
+<span class="k">class</span> <span class="nc">GroupSurvivalClassifier</span><span class="p">(</span><span class="n">BaseEstimator</span><span class="p">,</span> <span class="n">ClassifierMixin</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">survival_rates_</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">groups</span><span class="p">):</span>
+        <span class="n">is_man</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="s1">'Female/Boy/Man'</span><span class="p">]</span> <span class="o">==</span> <span class="mi">2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">survival_rates_</span> <span class="o">=</span> <span class="n">y</span><span class="p">[</span><span class="o">~</span><span class="n">is_man</span><span class="p">]</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="o">~</span><span class="n">is_man</span><span class="p">,</span> <span class="s1">'Group'</span><span class="p">])</span><span class="o">.</span><span class="n">agg</span><span class="p">([</span><span class="s1">'mean'</span><span class="p">,</span> <span class="s1">'count'</span><span class="p">])</span>
+        
+    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">survival_rates_</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">'The model needs to be fitted first.'</span><span class="p">)</span>
+        <span class="n">is_female</span> <span class="o">=</span> <span class="p">(</span><span class="n">X</span><span class="p">[</span><span class="s1">'Female/Boy/Man'</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">is_boy</span> <span class="o">=</span> <span class="p">(</span><span class="n">X</span><span class="p">[</span><span class="s1">'Female/Boy/Man'</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">family_survived</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">survival_rates_</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s1">'left'</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s1">'Group'</span><span class="p">)[</span><span class="s1">'mean'</span><span class="p">]</span>
+        <span class="n">female_survivors</span> <span class="o">=</span> <span class="n">is_female</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">family_survived</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">boy_survivors</span> <span class="o">=</span> <span class="n">is_boy</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">family_survived</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">female_survivors</span> <span class="o">|</span> <span class="n">boy_survivors</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+</div>
+    
+
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id='Our-"exemplary"-model'>
+<a class="anchor" href="#Our-" exemplary aria-hidden="true"><span class="octicon octicon-link"></span></a>Our "exemplary" model<a class="anchor-link" href="#Our-%22exemplary%22-model"> </a>
+</h2>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h3 id="Feature-engineering-and-categorical-encoding">
+<a class="anchor" href="#Feature-engineering-and-categorical-encoding" aria-hidden="true"><span class="octicon octicon-link"></span></a>Feature engineering and categorical encoding<a class="anchor-link" href="#Feature-engineering-and-categorical-encoding"> </a>
+</h3>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Before feeding the data to our classifier we will engineer some new features, which are inspired by what I have read in various public notebooks on Kaggle.</p>
+<p>The categorical features need to be encoded into numerical features. We will use <strong>ordinal encoding</strong> rather than one-hot encoding, given that this <a href="https://github.com/szilard/benchm-ml/issues/1">seems</a> to be preferable for tree-based models.</p>
+
+</div>
+</div>
+</div>
+    
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">embarked_encoder</span> <span class="o">=</span> <span class="n">OrdinalEncoder</span><span class="p">()</span>
+<span class="n">X</span><span class="p">[</span><span class="s1">'Embarked Encoded'</span><span class="p">]</span> <span class="o">=</span> <span class="n">embarked_encoder</span><span class="o">.</span><span class="n">fit_transform</span><span class="p">(</span><span class="n">X</span><span class="p">[[</span><span class="s1">'Embarked'</span><span class="p">]])</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+</div>
+    
+
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>As we have discussed, male survival depends largely on being a boy or being an adult male. To be precise, by <strong>boy</strong> we mean anyone with the title 'Master'. We create a new ordinal feature in which female is encoded as 0, boy as 1, and adult male as 2. Note that we ordered the categories in terms of descending survival rates.</p>
+
+</div>
+</div>
+</div>
+    
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">X</span><span class="p">[</span><span class="s1">'Is Boy'</span><span class="p">]</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="s1">'Name'</span><span class="p">]</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="s1">'Master.'</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+<span class="n">X</span><span class="p">[</span><span class="s1">'Female/Boy/Man'</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">X</span><span class="p">[</span><span class="s1">'Sex'</span><span class="p">]</span> <span class="o">==</span> <span class="s1">'male'</span><span class="p">)</span> <span class="o">-</span> <span class="n">X</span><span class="p">[</span><span class="s1">'Is Boy'</span><span class="p">]</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+</div>
+    
+
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>For shared tickets it seems that the ticket price is the total for all ticket holders. It seems more meaningful to compare the <strong>price per passenger</strong> than the total, which is why we engineer a 'Fare per Passenger' feature.</p>
+
+</div>
+</div>
+</div>
+    
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">X</span><span class="p">[</span><span class="s1">'Passengers per Ticket'</span><span class="p">]</span> <span class="o">=</span>  <span class="n">X</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s1">'Ticket'</span><span class="p">)[</span><span class="s1">'Ticket'</span><span class="p">]</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="s1">'count'</span><span class="p">)</span>
+<span class="n">X</span><span class="p">[</span><span class="s1">'Fare per Passenger'</span><span class="p">]</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="s1">'Fare'</span><span class="p">]</span> <span class="o">/</span> <span class="n">X</span><span class="p">[</span><span class="s1">'Passengers per Ticket'</span><span class="p">]</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+</div>
+    
+
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>We combine the number of siblings and spouses with the number of parents and children in one <strong>"Family Size"</strong> feature.</p>
+
+</div>
+</div>
+</div>
+    
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">X</span><span class="p">[</span><span class="s1">'Family Size'</span><span class="p">]</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="s1">'SibSp'</span><span class="p">]</span> <span class="o">+</span> <span class="n">X</span><span class="p">[</span><span class="s1">'Parch'</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+</div>
+    
+
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>We extract the <strong>'Deck'</strong> from the 'Cabin' feature. Note that the deck is given by the letter at the beginning of the cabin number. When encoding the Deck feature we make sure that NA gets encoded as its own category, rather than filled in later on. This is because a significant number of cabin numbers are missing (which makes the imputation harder) and also because the fact that the cabin number is missing might contain some information in itself.</p>
+
+</div>
+</div>
+</div>
+    
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">X</span><span class="p">[</span><span class="s1">'Deck'</span><span class="p">]</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="s1">'Cabin'</span><span class="p">]</span><span class="o">.</span><span class="n">str</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">deck_encoder</span> <span class="o">=</span> <span class="n">OrdinalEncoder</span><span class="p">()</span>
+<span class="n">X</span><span class="p">[</span><span class="s1">'Deck Encoded'</span><span class="p">]</span> <span class="o">=</span> <span class="n">deck_encoder</span><span class="o">.</span><span class="n">fit_transform</span><span class="p">(</span><span class="n">X</span><span class="p">[[</span><span class="s1">'Deck'</span><span class="p">]]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="s1">'missing'</span><span class="p">))</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+</div>
+    
+
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>We <strong>truncate</strong> the <strong>ticket</strong> number by removing the last two digits. This is essentially a form of binning, in that it reduces the cardinality of the 'Ticket' feature and groups together similar tickets.</p>
+
+</div>
+</div>
+</div>
+    
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">X</span><span class="p">[</span><span class="s1">'Truncated Ticket'</span><span class="p">]</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="s1">'Ticket'</span><span class="p">]</span><span class="o">.</span><span class="n">str</span><span class="p">[:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
+<span class="n">ticket_encoder</span> <span class="o">=</span> <span class="n">OrdinalEncoder</span><span class="p">()</span>
+<span class="n">X</span><span class="p">[</span><span class="s1">'Truncated Ticket Encoded'</span><span class="p">]</span> <span class="o">=</span> <span class="n">ticket_encoder</span><span class="o">.</span><span class="n">fit_transform</span><span class="p">(</span><span class="n">X</span><span class="p">[[</span><span class="s1">'Truncated Ticket'</span><span class="p">]])</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+</div>
+    
+
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Finally, we <strong>select</strong> those <strong>features</strong> we will use for the classification.</p>
+
+</div>
+</div>
+</div>
+    
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">X</span> <span class="o">=</span> <span class="n">X</span><span class="p">[[</span><span class="s1">'Female/Boy/Man'</span><span class="p">,</span> <span class="s1">'Age'</span><span class="p">,</span> <span class="s1">'Family Size'</span><span class="p">,</span> <span class="s1">'Fare per Passenger'</span><span class="p">,</span> <span class="s1">'Pclass'</span><span class="p">,</span> <span class="s1">'Deck Encoded'</span><span class="p">,</span> <span class="s1">'Truncated Ticket Encoded'</span><span class="p">,</span> <span class="s1">'Embarked Encoded'</span><span class="p">]]</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+</div>
+    
+
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h3 id="XGBoost-classifier-and-hyperparameter-tuning">
+<a class="anchor" href="#XGBoost-classifier-and-hyperparameter-tuning" aria-hidden="true"><span class="octicon octicon-link"></span></a>XGBoost classifier and hyperparameter tuning<a class="anchor-link" href="#XGBoost-classifier-and-hyperparameter-tuning"> </a>
+</h3>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>We will use the popular classifier from the library XGBoost.</p>
+<p>To <strong>tune the hyperparameters</strong> we will use the <code>GridSearchCV</code> function from scikit-learn, which evaluates all hyperparameter combinations in a "parameter grid" using cross-validation and selects the hyperparameters resulting in the highest mean accuracy.</p>
+<p>Before feeding the data to the classifier we need to fill in the missing values. We will use an <strong>iterative imputer</strong>, which fills in the missing values of each feature based on the remaining features. Because the imputation step depends on the training data, it needs to be repeated for each new train-test split. This is why we will concatenate the imputer with the classifier in a <strong>scikit-learn pipeline</strong>.</p>
+
+</div>
+</div>
+</div>
+    
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">iterative_imputer</span> <span class="o">=</span> <span class="n">IterativeImputer</span><span class="p">()</span>
+<span class="n">xgbclassifier</span> <span class="o">=</span> <span class="n">xgb</span><span class="o">.</span><span class="n">XGBClassifier</span><span class="p">(</span><span class="n">use_label_encoder</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">eval_metric</span><span class="o">=</span><span class="s1">'error'</span><span class="p">,</span> <span class="n">booster</span><span class="o">=</span><span class="s1">'gbtree'</span><span class="p">)</span>
+<span class="n">xgb_pipe</span> <span class="o">=</span> <span class="n">Pipeline</span><span class="p">(</span><span class="n">steps</span><span class="o">=</span><span class="p">[(</span><span class="s1">'iterative_imputer'</span><span class="p">,</span> <span class="n">iterative_imputer</span><span class="p">),</span> <span class="p">(</span><span class="s1">'xgbclassifier'</span><span class="p">,</span> <span class="n">xgbclassifier</span><span class="p">)])</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+</div>
+    
+
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>We will use the following hyperparameter grid.</p>
+
+</div>
+</div>
+</div>
+    
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">param_grid</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">'xgbclassifier__gamma'</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">],</span>
+    <span class="s1">'xgbclassifier__subsample'</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.9</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+    <span class="s1">'xgbclassifier__max_depth'</span><span class="p">:</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">],</span>
+    <span class="s1">'xgbclassifier__learning_rate'</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.05</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">],</span>
+    <span class="s1">'xgbclassifier__n_estimators'</span><span class="p">:</span> <span class="p">[</span><span class="mi">40</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">60</span><span class="p">],</span>
+    <span class="s1">'xgbclassifier__max_delta_step'</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">],</span>
+    <span class="s1">'xgbclassifier__reg_alpha'</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span>
+    <span class="p">}</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+</div>
+    
+
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="Cross-validation">
+<a class="anchor" href="#Cross-validation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Cross-validation<a class="anchor-link" href="#Cross-validation"> </a>
+</h2>
+<p>Now that we have implemented the classifiers, we need to set up the cross-validation schemes.</p>
+<p>Recall that the rationale behind cross-validation is to reduce the error in estimating model performance with a single train-test split, by averaging the scores across multiple train-test splits. Intuitively, in a single train-test split we might get unlucky and have a particularly "easy" (or "hard") test set, which results in a misleading accuracy score. Taking multiple splits both mitigates this risk and actually allows us to estimate the error (by looking at the variation across splits).</p>
+<p>In <strong>k-fold cross-validation</strong> a model is trained and evaluated $k$ times on different train-test splits, where the different test sets have the same size (or at most differ by 1), are disjoint and together make up the whole data set. Each of these test sets is called a <strong>fold</strong>.</p>
+<p>As explained above, to prevent the data leakage we need to perform splits which don't break up any of the groups of passengers traveling together (mostly families). In general, this is called <strong>group k-fold cross-validation</strong>. In this context we will refer to it as <strong>leak-proof cross-validation</strong>. In contrast, we will refer to regular (group agnostic) cross-validation as <strong>leaky cross-validation</strong> because it enables leakage.</p>
+<p>First of all we need to figure out, to a sufficient approximation, which passengers are in fact traveling together.</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h3 id="Identifying-the-groups">
+<a class="anchor" href="#Identifying-the-groups" aria-hidden="true"><span class="octicon octicon-link"></span></a>Identifying the groups<a class="anchor-link" href="#Identifying-the-groups"> </a>
+</h3>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>This section was heavily influenced by the Kaggle notebooks of <a href="https://www.kaggle.com/code/cdeotte/titanic-using-name-only-0-81818/notebook">Chris Deotte</a>, <a href="https://www.kaggle.com/code/erikbruin/titanic-2nd-degree-families-and-majority-voting/report">Erik Bruin</a>, and others.</p>
+<p>We want to identify the groups of passengers traveling together, who where likely to stay together during the sinking. This might require going beyond the closest family members (meaning those who have the same surname). One way to <strong>find extended families</strong> is to extract <strong>maiden names</strong>, which allows us to connect a married woman to her sister or mother, for instance. Even further, we can break apart <strong>double surnames</strong> ("Kink-Heilmann" or "Penasco y Castellana") to discover as many family relations as possible.</p>
+<p>Beyond the 'Name' feature, we will also use the <strong>ticket numbers</strong> to capture groups of friends or more distant family members traveling together.</p>
+<p>Because our aim is to minimize the leakage caused by groups of travelers being split across training set and test set, we want to make sure that we don't miss too many connections. This means that we want to catch as many real groups as possible, even at the cost of some <strong>false positives</strong>, while making sure the group sizes seem reasonable. To reduce the risk of false positives, we will only allow groups in which all passengers are traveling in the same class. This seems like a reasonable assumption for passengers sticking together.</p>
+<p>With all this in mind, this is <strong>how we will form the groups</strong>:</p>
+<ul>
+<li>If the surname of one passenger is the same as the surname, middle name, or any part of a double surname of another passenger, we put those passengers in the same group, <em>provided</em> they are in the <strong>same passenger class</strong>.</li>
+<li>If the ticket numbers of two passengers agree, the passengers are in the same group. (Passenger with the same ticket number are automatically in the same passenger class.)</li>
+</ul>
+<p>Following the rules above, some groups will contain passengers who are only <strong>indirectly connected</strong> through a chain of direct connections. In more mathematical language: the passengers are vertices in a <a href="https://en.wikipedia.org/wiki/Graph_(discrete_mathematics">graph</a>) and the rules above determine when two <strong>vertices</strong> are connected by an <strong>edge</strong>. From this perspective, the passenger groups are the <strong>connected components</strong> of the graph. We will use the <code>networkx</code> library to find the passenger groups (connected components).</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p><strong>Note:</strong> The approach outlined above seems to lead to pretty sensible groups. There are probably a couple of false connections but nothing dramatic. That said, it would be interesting to explore the effects that changes in how the connections are formed have on the results below. There is the option of a much more targeted approach, where we painstakingly go over the groups and discover false connections by taking into account the 'Parch' (number of parents and children on board) and 'SibSp' (number of siblings and spouses on board) features and even by searching some information on the passengers online. Furthermore, we decided to compare the whole ticket numbers of passengers, but some people have pointed out that the last digits of the ticket numbers sometimes vary for families traveling together. When I tried to compare the tickets numbers ignoring the last digit, this seemed to lead to too large groups (likely many false positives). However, in a more targeted approach it might be worth trying this out.</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>In the following we extract the surnames and maiden names from the 'Name' feature. We also break apart the double surnames, being careful about false positives (names starting with de, del, Van, Vander, and so on).</p>
+
+</div>
+</div>
+</div>
+    
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">full_data</span><span class="p">[</span><span class="s1">'Surname'</span><span class="p">]</span> <span class="o">=</span> <span class="n">full_data</span><span class="p">[</span><span class="s1">'Name'</span><span class="p">]</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">extract</span><span class="p">(</span><span class="s1">'(.+),'</span><span class="p">)</span>
+
+<span class="c1"># Maiden names are given in brackets in the 'Name' column</span>
+<span class="c1"># Note that we require a space before the start of the maiden name</span>
+<span class="c1"># to exclude nicknames, which are usually a single word in brackets</span>
+<span class="n">full_data</span><span class="p">[</span><span class="s1">'Maiden Name'</span><span class="p">]</span> <span class="o">=</span> <span class="n">full_data</span><span class="p">[</span><span class="s1">'Name'</span><span class="p">]</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">extract</span><span class="p">(</span><span class="sa">r</span><span class="s1">' ([A-Za-z]+)\)'</span><span class="p">)</span>
+
+
+<span class="c1"># Double surnames are separated by hyphens, spaces and 'y' (some Spanish surnames).</span>
+<span class="c1"># We need to exclude some false positives in French, Dutch and Spanish names</span>
+<span class="c1"># starting with de, del, Van, Vander, and so on.</span>
+<span class="n">has_double_surname</span> <span class="o">=</span> <span class="n">full_data</span><span class="p">[</span><span class="s1">'Surname'</span><span class="p">]</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="s1">'-| '</span><span class="p">)</span>
+<span class="n">false_positives</span> <span class="o">=</span> <span class="n">full_data</span><span class="p">[</span><span class="s1">'Surname'</span><span class="p">]</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="s1">'^(?i)va|^(?i)de'</span><span class="p">)</span>
+<span class="n">full_data</span><span class="p">[[</span><span class="s1">'First Surname'</span><span class="p">,</span> <span class="s1">'Second Surname'</span><span class="p">]]</span> <span class="o">=</span> <span class="n">full_data</span><span class="p">[</span><span class="s1">'Surname'</span><span class="p">]</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">has_double_surname</span> <span class="o">&amp;</span> <span class="o">~</span><span class="n">false_positives</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">'-| y | '</span><span class="p">,</span> <span class="n">expand</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">full_data</span><span class="p">[</span><span class="s1">'First Surname'</span><span class="p">]</span> <span class="o">=</span> <span class="n">full_data</span><span class="p">[</span><span class="s1">'First Surname'</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="n">full_data</span><span class="p">[</span><span class="s1">'Surname'</span><span class="p">])</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+</div>
+    
+
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Now we use <code>networkx</code> to determine the groups according to the rules we outlined above.</p>
+
+</div>
+</div>
+</div>
+    
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">connected_components</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">has_maiden_name</span> <span class="o">=</span> <span class="n">full_data</span><span class="p">[</span><span class="s1">'Maiden Name'</span><span class="p">]</span><span class="o">.</span><span class="n">notna</span><span class="p">()</span>
+
+<span class="c1"># </span>
+<span class="k">for</span> <span class="n">pclass</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">]:</span>
+    <span class="n">pairings</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">this_class</span> <span class="o">=</span> <span class="n">full_data</span><span class="p">[</span><span class="s1">'Pclass'</span><span class="p">]</span> <span class="o">==</span> <span class="n">pclass</span>
+    <span class="c1"># Note that for passengers with a simple surname (not a double/composite one)</span>
+    <span class="c1"># we filled 'First Surname' with the surname and left 'Second Surname' as None</span>
+    <span class="c1"># This is why we don't need the 'Surname' feature itself in here</span>
+    <span class="n">pairings</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">full_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">this_class</span> <span class="o">&amp;</span> <span class="n">has_maiden_name</span><span class="p">,</span> <span class="p">[</span><span class="s1">'First Surname'</span><span class="p">,</span> <span class="s1">'Maiden Name'</span><span class="p">]]</span>
+                        <span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="s1">'First Surname'</span><span class="p">:</span> <span class="s1">'first'</span><span class="p">,</span> <span class="s1">'Maiden Name'</span><span class="p">:</span> <span class="s1">'second'</span><span class="p">})</span>
+                    <span class="p">)</span>
+    <span class="n">pairings</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">full_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">this_class</span> <span class="o">&amp;</span> <span class="n">has_double_surname</span> <span class="o">&amp;</span> <span class="o">~</span><span class="n">false_positives</span><span class="p">,</span> <span class="p">[</span><span class="s1">'First Surname'</span><span class="p">,</span> <span class="s1">'Second Surname'</span><span class="p">]]</span>
+                        <span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="s1">'First Surname'</span><span class="p">:</span> <span class="s1">'first'</span><span class="p">,</span> <span class="s1">'Second Surname'</span><span class="p">:</span> <span class="s1">'second'</span><span class="p">})</span>
+                    <span class="p">)</span>
+    <span class="n">pairings</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">full_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">this_class</span><span class="p">,</span> <span class="p">[</span><span class="s1">'First Surname'</span><span class="p">,</span> <span class="s1">'Ticket'</span><span class="p">]]</span>
+                        <span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="s1">'First Surname'</span><span class="p">:</span> <span class="s1">'first'</span><span class="p">,</span> <span class="s1">'Ticket'</span><span class="p">:</span> <span class="s1">'second'</span><span class="p">})</span>
+                    <span class="p">)</span>
+    <span class="n">edges</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">pairings</span><span class="p">)</span>
+    <span class="n">graph</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">from_pandas_edgelist</span><span class="p">(</span><span class="n">edges</span><span class="p">,</span> <span class="s1">'first'</span><span class="p">,</span> <span class="s1">'second'</span><span class="p">)</span>
+    <span class="n">connected_components</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">connected_components</span><span class="p">(</span><span class="n">graph</span><span class="p">))</span>
+
+<span class="n">connected_components</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="nb">len</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">group_dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">enumerate</span><span class="p">(</span><span class="n">connected_components</span><span class="p">))</span>
+
+<span class="n">full_data</span><span class="p">[</span><span class="s1">'Group'</span><span class="p">]</span> <span class="o">=</span> <span class="n">full_data</span><span class="p">[</span><span class="s1">'Ticket'</span><span class="p">]</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">ticket</span><span class="p">:</span> <span class="nb">next</span><span class="p">(</span><span class="n">group_idx</span> <span class="k">for</span> <span class="n">group_idx</span><span class="p">,</span> <span class="n">group</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">connected_components</span><span class="p">)</span> <span class="k">if</span> <span class="n">ticket</span> <span class="ow">in</span> <span class="n">group</span><span class="p">))</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+</div>
+    
+
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Let's have a look at the sizes of the largest groups below:</p>
+
+</div>
+</div>
+</div>
+    
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">full_data</span><span class="p">[</span><span class="s1">'Group'</span><span class="p">]</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">tolist</span><span class="p">()[:</span><span class="mi">20</span><span class="p">]</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+<div class="output_area">
+
+
+
+<div class="output_text output_subarea output_execute_result">
+<pre>[16, 16, 13, 11, 11, 10, 10, 10, 10, 9, 8, 8, 8, 8, 7, 7, 7, 6, 6, 6]</pre>
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+    
+
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>A couple group sizes are a little large but overall, they are just a handful out of 232 groups total (this number excludes solo travelers; if each solo traveler counted as their own group, there would be a total of 768 groups). The results appear reasonable considering that we are grouping second degree relatives and even separate families traveling together (those sharing a ticket number). There are probably some false positives but our priority is to avoid leakage.</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h3 id="Cross-validation-splits">
+<a class="anchor" href="#Cross-validation-splits" aria-hidden="true"><span class="octicon octicon-link"></span></a>Cross-validation splits<a class="anchor-link" href="#Cross-validation-splits"> </a>
+</h3>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Thankfully, there are two scikit-learn functions which we can use to create the splits, or folds. For the <strong>leaky cross-validation</strong> we will use <code>StratifiedKFold</code> and for the <strong>leak-proof cross-validation</strong> (the one that doesn't break apart groups) <code>StratifiedGroupKFold</code>. We use <em>stratified</em> splits in both cases. This is because the data is imbalanced ($38\%$ of passengers survived) and the stratified splits ensure that all folds have similar survival rates.</p>
+<p>Before going further, we will check that the leak-proof folds are reasonably representative in terms of the various categorical features. This is to rule out other reasons why the accuracy might go down for leak-proof CV with respect to leaky CV.</p>
+
+</div>
+</div>
+</div>
+    
+    
+<div class="cell border-box-sizing code_cell rendered">
+<details class="description">
+      <summary class="btn btn-sm" data-open="Hide Code" data-close="Show Code"></summary>
+        <p></p>
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">X_raw</span> <span class="o">=</span> <span class="n">full_data</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="s1">'Survived'</span><span class="p">)</span>
+<span class="n">groups</span> <span class="o">=</span> <span class="n">full_data</span><span class="p">[</span><span class="s1">'Group'</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+<span class="n">sgkf</span> <span class="o">=</span>  <span class="n">StratifiedGroupKFold</span><span class="p">(</span><span class="n">n_splits</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+<span class="n">ratios</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+
+<span class="k">for</span> <span class="n">train</span><span class="p">,</span> <span class="n">test</span> <span class="ow">in</span> <span class="n">sgkf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">X_raw</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">groups</span><span class="o">=</span><span class="n">groups</span><span class="p">):</span>
+    <span class="n">ratios</span><span class="p">[</span><span class="s1">'survival'</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">y</span><span class="p">[</span><span class="n">test</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span>
+    <span class="n">ratios</span><span class="p">[</span><span class="s1">'female'</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">X_raw</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">test</span><span class="p">,</span> <span class="s1">'Sex'</span><span class="p">]</span> <span class="o">==</span> <span class="s1">'female'</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span>
+    <span class="n">ratios</span><span class="p">[</span><span class="s1">'first class'</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">X_raw</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">test</span><span class="p">,</span> <span class="s1">'Pclass'</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span>
+    <span class="n">ratios</span><span class="p">[</span><span class="s1">'second class'</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">X_raw</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">test</span><span class="p">,</span> <span class="s1">'Pclass'</span><span class="p">]</span> <span class="o">==</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span>
+    <span class="n">ratios</span><span class="p">[</span><span class="s1">'third class'</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">X_raw</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">test</span><span class="p">,</span> <span class="s1">'Pclass'</span><span class="p">]</span> <span class="o">==</span> <span class="mi">3</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span>
+    <span class="n">ratios</span><span class="p">[</span><span class="s1">'embarked S'</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">X_raw</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">test</span><span class="p">,</span> <span class="s1">'Embarked'</span><span class="p">]</span> <span class="o">==</span> <span class="s1">'S'</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span>
+    <span class="n">ratios</span><span class="p">[</span><span class="s1">'embarked Q'</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">X_raw</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">test</span><span class="p">,</span> <span class="s1">'Embarked'</span><span class="p">]</span> <span class="o">==</span> <span class="s1">'Q'</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span>
+    <span class="n">ratios</span><span class="p">[</span><span class="s1">'embarked C'</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">X_raw</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">test</span><span class="p">,</span> <span class="s1">'Embarked'</span><span class="p">]</span> <span class="o">==</span> <span class="s1">'C'</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span>
+
+<span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">ratios</span><span class="p">)</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+    </details>
+<div class="output_wrapper">
+<div class="output">
+
+<div class="output_area">
+
+
+<div class="output_html rendered_html output_subarea output_execute_result">
+<div>
+<style scoped="">
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>survival</th>
+      <th>female</th>
+      <th>first class</th>
+      <th>second class</th>
+      <th>third class</th>
+      <th>embarked S</th>
+      <th>embarked Q</th>
+      <th>embarked C</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>0.381679</td>
+      <td>0.351145</td>
+      <td>0.259542</td>
+      <td>0.213740</td>
+      <td>0.526718</td>
+      <td>0.709924</td>
+      <td>0.068702</td>
+      <td>0.221374</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>0.381679</td>
+      <td>0.351145</td>
+      <td>0.263359</td>
+      <td>0.213740</td>
+      <td>0.522901</td>
+      <td>0.709924</td>
+      <td>0.091603</td>
+      <td>0.190840</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>0.381679</td>
+      <td>0.381679</td>
+      <td>0.251908</td>
+      <td>0.206107</td>
+      <td>0.541985</td>
+      <td>0.656489</td>
+      <td>0.125954</td>
+      <td>0.217557</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>0.381679</td>
+      <td>0.377863</td>
+      <td>0.221374</td>
+      <td>0.270992</td>
+      <td>0.507634</td>
+      <td>0.755725</td>
+      <td>0.083969</td>
+      <td>0.160305</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>0.383142</td>
+      <td>0.318008</td>
+      <td>0.237548</td>
+      <td>0.153257</td>
+      <td>0.609195</td>
+      <td>0.659004</td>
+      <td>0.099617</td>
+      <td>0.241379</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+    
+
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Each row corresponds to a fold (test set for each split). Fortunately, the folds appear quite similar to each other.</p>
+<p>The one somewhat significant variation is for the 'Embarked' feature. This is particularly noticeable for the least frequent value 'Q', because relatively few passengers embarked in Queenstown. This is something to keep in mind but probably not a big deal.</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h3 id="Nested-cross-validation">
+<a class="anchor" href="#Nested-cross-validation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Nested cross-validation<a class="anchor-link" href="#Nested-cross-validation"> </a>
+</h3>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>To tune the hyperparameters we will use the <code>GridSearchCV</code> class from scikit-learn, which evaluates all hyperparameter combinations we provide (in the form of a "parameter grid") using cross-validation. The hyperparameters resulting in the highest mean accuracy are selected for the final model.</p>
+<p>When evaluating our classifier we <strong>need to repeat the hyperparameter search for each split</strong>, because the resulting hyperparameters depend on the training data to some extent. This means that the grid search cross-validation needs to be nested inside the main cross-validation, which we use to evaluate the model. For obvious reasons this is called a <strong>nested cross-validation</strong>.</p>
+<p>Even though scikit-learn has support for <em>group</em> cross-validation, we hit a roadblock with the <strong>nested cross-validation</strong>. To the best of my knowledge, it is currently not possible to pass the groups to the <em>inner</em> cross-validation within an <em>outer</em> cross-validation using the function <code>cross_validate</code>. However, if we tune the hyperparameters of the XGBoost classifier using a leaky cross-validation and then evaluate the model accuracy using leak-proof cross-validation, we might underestimate the classifier's potential because the hyperparameters were specifically tuned for leaky train-test splits. To be able to have an <em>inner</em> leak-proof cross-validation will <strong>need to write a custom cross-validation function</strong> which can pass the groups through to the inner cross-validation.</p>
+<p>The second reason we want a custom cross-validation function is to compute the <strong>accuracy for</strong> the <strong>solo travelers</strong> (in addition to the accuracy for all passengers). Solo travelers are those whose group has a size of "1". The hope is that looking at the accuracy on those passengers (which should be unaffected by the leakage) will help shed some light on whether a particular classifier is relying on the leakage.</p>
+<p>Now we implement the custom cross-validation function, which goes through the provided train-test splits (in the form of a <code>StratiedKFold</code> or <code>StratifiedGroupKFold</code> object), trains the classifier on each training set, computes the overall accuracy on each test set, and finally computes the accuracy on the solo travelers in each test set. When the classifier is a <code>GridSearchCV</code> object, the passenger groups are passed to it through its <code>fit</code> method. The function returns two NumPy arrays, one with the overall accuracy scores and one with the accuracy scores restricted to the solo travelers.</p>
+
+</div>
+</div>
+</div>
+    
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="k">def</span> <span class="nf">custom_cross_validate</span><span class="p">(</span><span class="n">classifier</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">outer_cv</span><span class="p">,</span> <span class="n">groups</span><span class="p">):</span>
+    <span class="sd">'''Almost the same as sklearn's cross_validate, but when classifier</span>
+<span class="sd">    is a GridSearchCV object, it passes the groups to it. This allows</span>
+<span class="sd">    us to make the inner CV leak-proof.</span>
+<span class="sd">    It also computes the accuracy of the predictions for solo passengers,</span>
+<span class="sd">    as an additional "solo score".'''</span>
+    <span class="n">solo_groups</span> <span class="o">=</span> <span class="n">groups</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()[</span><span class="n">groups</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">index</span>
+    <span class="n">scores</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">solo_scores</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">count</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">total</span> <span class="o">=</span> <span class="n">outer_cv</span><span class="o">.</span><span class="n">n_splits</span>
+    <span class="k">for</span> <span class="n">train_idx</span><span class="p">,</span> <span class="n">test_idx</span> <span class="ow">in</span> <span class="n">outer_cv</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">groups</span><span class="p">):</span>
+        <span class="n">X_train</span><span class="p">,</span> <span class="n">X_test</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">train_idx</span><span class="p">],</span> <span class="n">X</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">test_idx</span><span class="p">]</span>
+        <span class="n">y_train</span><span class="p">,</span> <span class="n">y_test</span> <span class="o">=</span> <span class="n">y</span><span class="p">[</span><span class="n">train_idx</span><span class="p">],</span> <span class="n">y</span><span class="p">[</span><span class="n">test_idx</span><span class="p">]</span>
+        <span class="n">classifier</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="n">y_train</span><span class="p">,</span> <span class="n">groups</span><span class="o">=</span><span class="n">groups</span><span class="p">[</span><span class="n">train_idx</span><span class="p">])</span>
+        <span class="n">solo_travelers</span> <span class="o">=</span> <span class="n">groups</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">solo_groups</span><span class="p">)[</span><span class="n">test_idx</span><span class="p">]</span>
+        <span class="n">score</span> <span class="o">=</span> <span class="n">classifier</span><span class="o">.</span><span class="n">score</span><span class="p">(</span><span class="n">X_test</span><span class="p">,</span> <span class="n">y_test</span><span class="p">)</span>
+        <span class="n">solo_score</span> <span class="o">=</span> <span class="n">classifier</span><span class="o">.</span><span class="n">score</span><span class="p">(</span><span class="n">X_test</span><span class="p">[</span><span class="n">solo_travelers</span><span class="p">],</span> <span class="n">y_test</span><span class="p">[</span><span class="n">solo_travelers</span><span class="p">])</span>
+        <span class="n">scores</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">score</span><span class="p">)</span>
+        <span class="n">solo_scores</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">solo_score</span><span class="p">)</span>
+        <span class="c1"># print(f'Completed fold {count}/{total}')</span>
+        <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">scores</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">solo_scores</span><span class="p">)</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+</div>
+    
+
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="How-well-does-our-classifier-do-when-we-prevent-leakage?">
+<a class="anchor" href="#How-well-does-our-classifier-do-when-we-prevent-leakage?" aria-hidden="true"><span class="octicon octicon-link"></span></a>How well does our classifier do when we prevent leakage?<a class="anchor-link" href="#How-well-does-our-classifier-do-when-we-prevent-leakage?"> </a>
+</h2>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>We will now try to do as well as we can in a leak-free CV with our XGBoost model. This will demonstrate how far we can go in the absence of leakage.</p>
+<p>Because the (outer) evaluation CV is leak-free, we will also use a leak-free CV for the (inner) hyperparameter grid search CV. Additionally, we will drop the truncated ticket feature because it is unlikely to help in the absence of leakage, since it mostly identifies passenger groups.</p>
+
+</div>
+</div>
+</div>
+    
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">group_inner_cv</span> <span class="o">=</span>  <span class="n">StratifiedGroupKFold</span><span class="p">(</span><span class="n">n_splits</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="n">group_outer_cv</span> <span class="o">=</span>  <span class="n">StratifiedGroupKFold</span><span class="p">(</span><span class="n">n_splits</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+
+<span class="n">X_woticket</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="s1">'Truncated Ticket Encoded'</span><span class="p">)</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+</div>
+    
+
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Now let's evaluate the XGBoost classifier and the baseline models with a leak-free CV.</p>
+
+</div>
+</div>
+</div>
+    
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">classifier</span> <span class="o">=</span> <span class="n">GridSearchCV</span><span class="p">(</span><span class="n">estimator</span><span class="o">=</span><span class="n">xgb_pipe</span><span class="p">,</span> <span class="n">param_grid</span><span class="o">=</span><span class="n">param_grid</span><span class="p">,</span> <span class="n">cv</span><span class="o">=</span><span class="n">group_inner_cv</span><span class="p">)</span>
+<span class="n">xgb_scores</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">custom_cross_validate</span><span class="p">(</span><span class="n">classifier</span><span class="p">,</span> <span class="n">X_woticket</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">outer_cv</span><span class="o">=</span><span class="n">group_outer_cv</span><span class="p">,</span> <span class="n">groups</span><span class="o">=</span><span class="n">groups</span><span class="p">)</span>
+<span class="n">gender_scores</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">custom_cross_validate</span><span class="p">(</span><span class="n">GenderClassifier</span><span class="p">(),</span> <span class="n">X_woticket</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">outer_cv</span><span class="o">=</span><span class="n">group_outer_cv</span><span class="p">,</span> <span class="n">groups</span><span class="o">=</span><span class="n">groups</span><span class="p">)</span>
+<span class="n">enhanced_gender_scores</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">custom_cross_validate</span><span class="p">(</span><span class="n">EnhancedGenderClassifier</span><span class="p">(),</span> <span class="n">X_woticket</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">outer_cv</span><span class="o">=</span><span class="n">group_outer_cv</span><span class="p">,</span> <span class="n">groups</span><span class="o">=</span><span class="n">groups</span><span class="p">)</span>
+<span class="n">group_survival_scores</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">custom_cross_validate</span><span class="p">(</span><span class="n">GroupSurvivalClassifier</span><span class="p">(),</span> <span class="n">X_woticket</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">groups</span><span class="p">),</span> <span class="n">y</span><span class="p">,</span> <span class="n">outer_cv</span><span class="o">=</span><span class="n">group_outer_cv</span><span class="p">,</span> <span class="n">groups</span><span class="o">=</span><span class="n">groups</span><span class="p">)</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+</div>
+    
+
+    
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">results</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s1">'XGBoost'</span><span class="p">:</span> <span class="n">xgb_scores</span><span class="p">,</span> <span class="s1">'Gender Baseline'</span><span class="p">:</span> <span class="n">gender_scores</span><span class="p">,</span> <span class="s1">'Enhanced Gender Baseline'</span><span class="p">:</span> <span class="n">enhanced_gender_scores</span><span class="p">})</span>
+<span class="n">results</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+<div class="output_area">
+
+
+<div class="output_html rendered_html output_subarea output_execute_result">
+<div>
+<style scoped="">
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>XGBoost</th>
+      <th>Gender Baseline</th>
+      <th>Enhanced Gender Baseline</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>0.809160</td>
+      <td>0.793893</td>
+      <td>0.770992</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>0.862595</td>
+      <td>0.801527</td>
+      <td>0.832061</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>0.797710</td>
+      <td>0.755725</td>
+      <td>0.809160</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>0.847328</td>
+      <td>0.767176</td>
+      <td>0.812977</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>0.793103</td>
+      <td>0.781609</td>
+      <td>0.777778</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+    
+
+    
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">results</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+<div class="output_area">
+
+
+
+<div class="output_text output_subarea output_execute_result">
+<pre>XGBoost                     0.821979
+Gender Baseline             0.779986
+Enhanced Gender Baseline    0.800594
+dtype: float64</pre>
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+    
+
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>The XGBoost classifier does significantly better than the baselines most of the time, even when we prevent it from using group survival for prediction!</p>
+<p>It is of course possible that we missed some passenger connections. Considering the low threshold we used to make the connections, it seems unlikely that we missed anything significant. But it would be worth investigating further.</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="Does-our-model-rely-on-leakage-if-we-give-it-the-chance?">
+<a class="anchor" href="#Does-our-model-rely-on-leakage-if-we-give-it-the-chance?" aria-hidden="true"><span class="octicon octicon-link"></span></a>Does our model rely on leakage if we give it the chance?<a class="anchor-link" href="#Does-our-model-rely-on-leakage-if-we-give-it-the-chance?"> </a>
+</h2>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>To that end we will compare the accuracy of our model under a leaky CV to its accuracy under a leak-free CV, as well as to the baselines.</p>
+<p>In contrast to the last section, we will <strong>tune the hyperparameters with a leaky CV</strong>, even when we evaluate it with a leak-proof CV (in other words, the inner CV is leaky even when the outer CV is leak-proof). This is because now we want to "allow" our model to use the leakage during training (to see to which extent the model actually ends up relying on it), whereas before we just wanted to get the most out of our model in the leak-proof case.</p>
+<p>Out of the features we are using, ticket and family size are the most likely ways in which the classifier could "identify the groups". Because of this, we will train and evaluate the classifier with and without those features, in case it allows us to gain some insight into how the model uses the leakage.</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>We will add all the results to a dictionary and display them in a table (pandas DataFrame). The following helper functions add the results to a dictionary which we will turn into a DataFrame.</p>
+
+</div>
+</div>
+</div>
+    
+    
+<div class="cell border-box-sizing code_cell rendered">
+<details class="description">
+      <summary class="btn btn-sm" data-open="Hide Code" data-close="Show Code"></summary>
+        <p></p>
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="k">def</span> <span class="nf">add_leaky_results</span><span class="p">(</span><span class="n">results_dic</span><span class="p">,</span> <span class="n">classifier</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
+    <span class="c1"># print(f'Computing leaky CV scores for\n{classifier} with features\n{list(X.columns)}')</span>
+    <span class="n">scores</span><span class="p">,</span> <span class="n">scores_solo</span> <span class="o">=</span> <span class="n">custom_cross_validate</span><span class="p">(</span><span class="n">classifier</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">outer_cv</span><span class="o">=</span><span class="n">outer_cv</span><span class="p">,</span> <span class="n">groups</span><span class="o">=</span><span class="n">groups</span><span class="p">)</span>
+    <span class="n">results_dic</span><span class="p">[</span><span class="s1">'Leaky CV mean'</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">scores</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span>
+    <span class="n">results_dic</span><span class="p">[</span><span class="s1">'Leaky CV std'</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">scores</span><span class="o">.</span><span class="n">std</span><span class="p">())</span>
+    <span class="n">results_dic</span><span class="p">[</span><span class="s1">'Leaky CV solo mean'</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">scores_solo</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span>
+    <span class="n">results_dic</span><span class="p">[</span><span class="s1">'Leaky CV solo std'</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">scores_solo</span><span class="o">.</span><span class="n">std</span><span class="p">())</span>
+    <span class="c1"># print('------- DONE -------')</span>
+    
+<span class="k">def</span> <span class="nf">add_leak_proof_results</span><span class="p">(</span><span class="n">results_dic</span><span class="p">,</span> <span class="n">classifier</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
+    <span class="c1"># print(f'Computing leak-proof CV scores for {classifier} with features {list(X.columns)}')</span>
+    <span class="n">scores</span><span class="p">,</span> <span class="n">scores_solo</span> <span class="o">=</span> <span class="n">custom_cross_validate</span><span class="p">(</span><span class="n">classifier</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">outer_cv</span><span class="o">=</span><span class="n">group_outer_cv</span><span class="p">,</span> <span class="n">groups</span><span class="o">=</span><span class="n">groups</span><span class="p">)</span>
+    <span class="n">results_dic</span><span class="p">[</span><span class="s1">'Leak-proof CV mean'</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">scores</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span>
+    <span class="n">results_dic</span><span class="p">[</span><span class="s1">'Leak-proof CV std'</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">scores</span><span class="o">.</span><span class="n">std</span><span class="p">())</span>
+    <span class="n">results_dic</span><span class="p">[</span><span class="s1">'Leak-proof CV solo mean'</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">scores_solo</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span>
+    <span class="n">results_dic</span><span class="p">[</span><span class="s1">'Leak-proof CV solo std'</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">scores_solo</span><span class="o">.</span><span class="n">std</span><span class="p">())</span>
+    <span class="c1"># print('------- DONE -------')</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+    </details>
+</div>
+    
+
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Now we will perform all the cross-validations.</p>
+
+</div>
+</div>
+</div>
+    
+    
+<div class="cell border-box-sizing code_cell rendered">
+<details class="description">
+      <summary class="btn btn-sm" data-open="Hide Code" data-close="Show Code"></summary>
+        <p></p>
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">inner_cv</span> <span class="o">=</span>  <span class="n">StratifiedKFold</span><span class="p">(</span><span class="n">n_splits</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="n">outer_cv</span> <span class="o">=</span>  <span class="n">StratifiedKFold</span><span class="p">(</span><span class="n">n_splits</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+
+<span class="n">results_dic</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+
+<span class="n">classifiers</span> <span class="o">=</span> <span class="p">[</span><span class="n">GenderClassifier</span><span class="p">(),</span> <span class="n">EnhancedGenderClassifier</span><span class="p">(),</span> <span class="n">GroupSurvivalClassifier</span><span class="p">()]</span> <span class="o">+</span> <span class="mi">3</span> <span class="o">*</span> <span class="p">[</span><span class="n">GridSearchCV</span><span class="p">(</span><span class="n">estimator</span><span class="o">=</span><span class="n">xgb_pipe</span><span class="p">,</span> <span class="n">param_grid</span><span class="o">=</span><span class="n">param_grid</span><span class="p">,</span> <span class="n">cv</span><span class="o">=</span><span class="n">inner_cv</span><span class="p">)]</span>
+<span class="n">X_variations</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">[</span><span class="n">X</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">X</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">groups</span><span class="p">)]</span> <span class="o">+</span> <span class="p">[</span><span class="n">X</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">X</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="s1">'Truncated Ticket Encoded'</span><span class="p">)]</span> <span class="o">+</span> <span class="p">[</span><span class="n">X</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s1">'Truncated Ticket Encoded'</span><span class="p">,</span> <span class="s1">'Family Size'</span><span class="p">])]</span>
+
+<span class="k">for</span> <span class="n">classifier</span><span class="p">,</span> <span class="n">X_variation</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">classifiers</span><span class="p">,</span> <span class="n">X_variations</span><span class="p">):</span>
+    <span class="n">add_leaky_results</span><span class="p">(</span><span class="n">results_dic</span><span class="p">,</span> <span class="n">classifier</span><span class="p">,</span> <span class="n">X_variation</span><span class="p">)</span>
+    <span class="n">add_leak_proof_results</span><span class="p">(</span><span class="n">results_dic</span><span class="p">,</span> <span class="n">classifier</span><span class="p">,</span> <span class="n">X_variation</span><span class="p">)</span>
+
+<span class="n">index</span> <span class="o">=</span> <span class="p">[</span><span class="s1">'Gender model'</span><span class="p">,</span> <span class="s1">'Enhanced gender model'</span><span class="p">,</span> <span class="s1">'Group survival model'</span><span class="p">,</span> <span class="s1">'XGBoost'</span><span class="p">,</span> <span class="s1">'XGBoost no ticket'</span><span class="p">,</span> <span class="s1">'XGBoost no ticket or familiy size'</span><span class="p">]</span>
+<span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">results_dic</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">index</span><span class="p">)[[</span><span class="s1">'Leaky CV mean'</span><span class="p">,</span> <span class="s1">'Leaky CV solo mean'</span><span class="p">,</span> <span class="s1">'Leak-proof CV mean'</span><span class="p">,</span> <span class="s1">'Leak-proof CV solo mean'</span><span class="p">]]</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+    </details>
+<div class="output_wrapper">
+<div class="output">
+
+<div class="output_area">
+
+
+<div class="output_html rendered_html output_subarea output_execute_result">
+<div>
+<style scoped="">
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Leaky CV mean</th>
+      <th>Leaky CV solo mean</th>
+      <th>Leak-proof CV mean</th>
+      <th>Leak-proof CV solo mean</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>Gender model</th>
+      <td>0.779980</td>
+      <td>0.796510</td>
+      <td>0.779986</td>
+      <td>0.796434</td>
+    </tr>
+    <tr>
+      <th>Enhanced gender model</th>
+      <td>0.800611</td>
+      <td>0.797908</td>
+      <td>0.800594</td>
+      <td>0.798253</td>
+    </tr>
+    <tr>
+      <th>Group survival model</th>
+      <td>0.828867</td>
+      <td>0.796510</td>
+      <td>0.779986</td>
+      <td>0.796434</td>
+    </tr>
+    <tr>
+      <th>XGBoost</th>
+      <td>0.817393</td>
+      <td>0.799463</td>
+      <td>0.797555</td>
+      <td>0.792913</td>
+    </tr>
+    <tr>
+      <th>XGBoost no ticket</th>
+      <td>0.810526</td>
+      <td>0.785366</td>
+      <td>0.817405</td>
+      <td>0.800289</td>
+    </tr>
+    <tr>
+      <th>XGBoost no ticket or familiy size</th>
+      <td>0.803662</td>
+      <td>0.768720</td>
+      <td>0.804413</td>
+      <td>0.794888</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+    
+
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>We will discuss the table above and offer some (speculative) interpretations below. It needs to be noted that some of the observed effects might not be statistically significant and we need to be cautious about drawing conclusions. In the next section we will discuss the statistical significance of the observed effects.</p>
+<p>When including the ticket feature, the leak-proof CV accuracy seems to be significantly worse than the leaky CV accuracy. This seems to confirm the conjecture that the XGBoost model would use the (truncated) ticket feature to identify groups and rely on leakage. Once we drop the ticket feature this is reversed, although the difference is no longer significant in that case (might be due to chance). Once again, this would be consistent with the conjecture that without the ticket feature our model doesn't make use of the leakage in any significant way.</p>
+<p>The fact that the XGBoost model has a higher accuracy than the baselines is entirely due to its better predictions for passengers traveling in groups. For solo passengers the accuracy is either essentially the same as the baselines (under the leak-proof CV) or much worse than the baselines (under the leaky CV). Given that solo travelers make up $41\%$ of the passengers, any decrease in accuracy for solo passengers needs to be compensated by a similar increase in accuracy for non-solo passengers.</p>
+<p>In the leaky CV, the performance on solo passengers degrades significantly when removing the ticket and family size features. In fact, it appears that the performance reduction can be entirely explained by the drop in accuracy for solo travelers (which, again, make up almost half of the passengers).</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="Conclusions">
+<a class="anchor" href="#Conclusions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Conclusions<a class="anchor-link" href="#Conclusions"> </a>
+</h2>
+<p>We need to take any conclusions with a grain of salt because the differences between the mean accuracy scores could at least partially be explained by random effects related to the train-test splits. The standard errors of the mean accuracy scores are roughly given by dividing the standard deviation of the results of each cross-validation by $\sqrt{5}$ (the square root of the number of folds). However, this would give us a somewhat downward biased estimate of the "true" standard error, given that the sample standard deviation is itself downward biased and the scores in a CV are not independent of each other (which is the underlying assumption for dividing by $\sqrt{5}$). Estimating the standard error for k-fold cross-validation <a href="https://www.jmlr.org/papers/volume5/grandvalet04a/grandvalet04a.pdf">is tricky</a>.</p>
+<p>The following table contains the standard deviations corresponding to the mean accuracy scores in the previous table. Recall that our rough rule of thumb is that the standard error of the mean accuracy is given by the standard deviation divided by 2 (which is slightly less than $\sqrt{5}$).</p>
+
+</div>
+</div>
+</div>
+    
+    
+<div class="cell border-box-sizing code_cell rendered">
+<details class="description">
+      <summary class="btn btn-sm" data-open="Hide Code" data-close="Show Code"></summary>
+        <p></p>
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">results_dic</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">index</span><span class="p">)[[</span><span class="s1">'Leaky CV std'</span><span class="p">,</span> <span class="s1">'Leaky CV solo std'</span><span class="p">,</span> <span class="s1">'Leak-proof CV std'</span><span class="p">,</span> <span class="s1">'Leak-proof CV solo std'</span><span class="p">]]</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+    </details>
+<div class="output_wrapper">
+<div class="output">
+
+<div class="output_area">
+
+
+<div class="output_html rendered_html output_subarea output_execute_result">
+<div>
+<style scoped="">
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Leaky CV std</th>
+      <th>Leaky CV solo std</th>
+      <th>Leak-proof CV std</th>
+      <th>Leak-proof CV solo std</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>Gender model</th>
+      <td>0.014471</td>
+      <td>0.028917</td>
+      <td>0.016809</td>
+      <td>0.017170</td>
+    </tr>
+    <tr>
+      <th>Enhanced gender model</th>
+      <td>0.020251</td>
+      <td>0.024500</td>
+      <td>0.022864</td>
+      <td>0.016383</td>
+    </tr>
+    <tr>
+      <th>Group survival model</th>
+      <td>0.009656</td>
+      <td>0.028917</td>
+      <td>0.016809</td>
+      <td>0.017170</td>
+    </tr>
+    <tr>
+      <th>XGBoost</th>
+      <td>0.022923</td>
+      <td>0.043353</td>
+      <td>0.017577</td>
+      <td>0.026314</td>
+    </tr>
+    <tr>
+      <th>XGBoost no ticket</th>
+      <td>0.031544</td>
+      <td>0.046849</td>
+      <td>0.021893</td>
+      <td>0.012502</td>
+    </tr>
+    <tr>
+      <th>XGBoost no ticket or familiy size</th>
+      <td>0.034558</td>
+      <td>0.059913</td>
+      <td>0.016670</td>
+      <td>0.019164</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+    
+
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Overall, I think the results point toward real effects but it has to be said that the observed differences seem to be mostly between 1 and 2 standard errors (according to the rule of thumb). The next step would be a careful analysis of the errors. <strong>Paired hypothesis tests</strong> are necessary to compare classifiers evaluated with the same CV (take the accuracy differences for each split and compute the sample standard deviation of the differences).</p>
+<p>Keeping in mind the caveats above, we saw that classifiers can perform better than the enhanced gender baseline, even if we prevent the group survival leakage. Recall that XGBoost had a mean accuracy $0.822$ versus the baseline $0.801$ when evaluated with the leak-proof CV (using leak-proof grid search CV). It would be very interesting to see how other classifiers do compared to the baseline.</p>
+<p>Assuming the difference in accuracy is statistically significant, this indicates that there is more predictive information in the data than: 1) What is given by splitting the passengers using the 'Sex', 'Pclass', and 'Embarked' categories, and 2) The group survival leakage we identified. In fact, the $0.822$ mean accuracy achieved in the leak-proof CV is not far from the group survival baseline of $0.829$. This suggests that the amount of "leakage-free" information is comparable to the information we get from the leakage alone. The latter is highly speculative, of course.</p>
+<p>Furthermore, the table of mean accuracy scores seems to show that the XGBoost model is using the leakage when we use the "truncated ticket" feature, but doesn't really use the leakage if that feature is dropped. However, we need to be cautious with these conjectures, considering the higher standard deviation when dropping those features.</p>
+<p>Please let me know what you think! I welcome suggestions and I would be excited to see other people try this stuff out with other classifiers. There is still a lot to explore.</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="P.S.-Is-the-Kaggle-test-set-random?">
+<a class="anchor" href="#P.S.-Is-the-Kaggle-test-set-random?" aria-hidden="true"><span class="octicon octicon-link"></span></a>P.S. Is the Kaggle test set random?<a class="anchor-link" href="#P.S.-Is-the-Kaggle-test-set-random?"> </a>
+</h2>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Working with different train-test splits made me wonder if the Kaggle split was done completely at random or if the data was already ordered in some way before the split. In the latter case, the train and test set might have different distributions.</p>
+<p>Below we will check how typical the train-test split is in two ways:</p>
+<ul>
+<li>How often are groups with multiple members separated by the split?</li>
+<li>What is the survival rate in the test set?</li>
+</ul>
+<p>In order to check if the observed quantities are <em>typical</em> we will make a histogram of both quantities over many random train-test split and see how central the values for the Kaggle split are within the histograms. This is essentially an informal hypothesis test (the null hypothesis being that the Kaggle test set was selected randomly, or more precisely by using a uniform distribution).</p>
+
+</div>
+</div>
+</div>
+    
+    
+<div class="cell border-box-sizing code_cell rendered">
+<details class="description">
+      <summary class="btn btn-sm" data-open="Hide Code" data-close="Show Code"></summary>
+        <p></p>
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">n_groups</span> <span class="o">=</span> <span class="p">(</span><span class="n">groups</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+<span class="n">train_groups</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">groups</span><span class="p">)</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">kaggle_train_idx</span><span class="p">,</span> <span class="s1">'Group'</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+<span class="n">test_groups</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">groups</span><span class="p">)</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">kaggle_test_idx</span><span class="p">,</span> <span class="s1">'Group'</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+<span class="n">overlap</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">train_groups</span> <span class="o">&amp;</span> <span class="n">test_groups</span><span class="p">)</span> <span class="o">/</span> <span class="n">n_groups</span>
+<span class="n">survival_rate</span> <span class="o">=</span> <span class="n">y</span><span class="p">[</span><span class="n">kaggle_test_idx</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">'For the Kaggle split, </span><span class="si">{</span><span class="n">overlap</span> <span class="o">*</span> <span class="mi">100</span><span class="si">:</span><span class="s1">.0f</span><span class="si">}</span><span class="s1">% of proper groups (excluding solo travelers) have members in</span><span class="se">\n</span><span class="s1">both train and test set, and the test set survival rate is </span><span class="si">{</span><span class="n">survival_rate</span><span class="si">:</span><span class="s1">.2f</span><span class="si">}</span><span class="s1">.'</span><span class="p">)</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+    </details>
+<div class="output_wrapper">
+<div class="output">
+
+<div class="output_area">
+
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>For the Kaggle split, 61% of proper groups (excluding solo travelers) have members in
+both train and test set, and the test set survival rate is 0.38.
+</pre>
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+    
+
+    
+    
+<div class="cell border-box-sizing code_cell rendered">
+<details class="description">
+      <summary class="btn btn-sm" data-open="Hide Code" data-close="Show Code"></summary>
+        <p></p>
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">overlaps</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">survival_rates</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">N</span> <span class="o">=</span> <span class="mi">10</span><span class="o">**</span><span class="mi">4</span>
+
+<span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">):</span>
+    <span class="n">groups_shuffled</span> <span class="o">=</span> <span class="n">groups</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">frac</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">train_groups</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">groups_shuffled</span><span class="p">[</span><span class="n">kaggle_train_idx</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+    <span class="n">test_groups</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">groups_shuffled</span><span class="p">[</span><span class="n">kaggle_test_idx</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+    <span class="n">overlap</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">train_groups</span> <span class="o">&amp;</span> <span class="n">test_groups</span><span class="p">)</span> <span class="o">/</span> <span class="n">n_groups</span>
+    <span class="n">overlaps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">overlap</span><span class="p">)</span>
+    <span class="n">y_shuffled</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">frac</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">survival_rate</span> <span class="o">=</span> <span class="n">y_shuffled</span><span class="p">[</span><span class="n">kaggle_test_idx</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    <span class="n">survival_rates</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">survival_rate</span><span class="p">)</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="p">(</span><span class="n">ax0</span><span class="p">,</span> <span class="n">ax1</span><span class="p">)</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+    
+<span class="n">ax0</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">'Fraction of groups divided into train and test'</span><span class="p">)</span>
+<span class="n">ax0</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="n">overlaps</span><span class="p">);</span>
+
+<span class="n">ax1</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">'Survival rates in test set'</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="n">survival_rates</span><span class="p">);</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+    </details>
+<div class="output_wrapper">
+<div class="output">
+
+<div class="output_area">
+
+
+
+<div class="output_png output_subarea ">
+<img src="data:image/png;base64,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%0A">
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+    
+
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>The Kaggle test set seems to be very typical, at least as far as the survival rate and passenger groups are concerned. In fact, both values (0.61 and 0.38) are close to the mean for both distributions (almost suspiciously close). This suggests that the test set was either drawn at random or specifically chosen to have a typical survival rate.</p>
+
+</div>
+</div>
+</div>
+</div>
+
+
+
+  </div><a class="u-url" href="/2022/04/11/titanic-leak.html" hidden></a>
+</article>
+
+      </div>
+    </main><footer class="site-footer h-card">
+  <data class="u-url" href="/"></data>
+
+  <div class="wrapper">
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col">
+        <p class="feed-subscribe">
+          <a href="/feed.xml">
+            <svg class="svg-icon orange">
+              <use xlink:href="/assets/minima-social-icons.svg#rss"></use>
+            </svg><span>Subscribe</span>
+          </a>
+        </p>
+      </div>
+      <div class="footer-col">
+        <p></p>
+      </div>
+    </div>
+
+    <div class="social-links"><ul class="social-media-list"><li><a rel="me" href="https://github.com/recmit" target="_blank" title="recmit"><svg class="svg-icon grey"><use xlink:href="/assets/minima-social-icons.svg#github"></use></svg></a></li><li><a rel="me" href="https://www.linkedin.com/in/david-recio-mitter" target="_blank" title="david-recio-mitter"><svg class="svg-icon grey"><use xlink:href="/assets/minima-social-icons.svg#linkedin"></use></svg></a></li></ul>
+</div>
+
+  </div>
+
+</footer>
+</body>
+
+</html>
