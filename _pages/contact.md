@@ -19,5 +19,7 @@ permalink: /contact/
 	    <textarea name="message" class="form-control" id="message" placeholder="Your message" required></textarea>
       </div>
       <!-- <hr> -->
+      <div class="g-recaptcha" data-sitekey="6Ld23IYfAAAAAPEblWZSCtHZTMr55BRJ2-tCJoiJ"></div>
+      <br/>
       <button type="submit" class="btn btn-primary">Submit</button>
 </form>
