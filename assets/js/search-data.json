@@ -49,6 +49,17 @@
   
 
   
+      ,"page2": {
+          "title": "Contact",
+          "content": "Email address Name Message Submit",
+          "url": "david-recio.com/contact/",
+          "relUrl": "/contact/",
+          "date": ""
+      }
+      
+  
+
+  
 
   
   
@@ -68,7 +79,7 @@
   
 
   
-      ,"page9": {
+      ,"page10": {
           "title": "",
           "content": "Sitemap: {{ “sitemap.xml” | absolute_url }} | .",
           "url": "david-recio.com/robots.txt",
