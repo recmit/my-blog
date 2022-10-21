@@ -32,49 +32,6 @@ layout: notebook
 </div>
 </div>
 </div>
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="o">!</span>pip install -qq transformers watermark vaderSentiment emoji datasets evaluate pickle5
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-<div class="output_area">
-
-<div class="output_subarea output_stream output_stdout output_text">
-<pre>     |████████████████████████████████| 5.3 MB 4.7 MB/s 
-     |████████████████████████████████| 125 kB 11.3 MB/s 
-     |████████████████████████████████| 216 kB 68.8 MB/s 
-     |████████████████████████████████| 441 kB 58.5 MB/s 
-     |████████████████████████████████| 72 kB 1.9 MB/s 
-     |████████████████████████████████| 256 kB 72.1 MB/s 
-     |████████████████████████████████| 7.6 MB 50.2 MB/s 
-     |████████████████████████████████| 163 kB 51.1 MB/s 
-     |████████████████████████████████| 115 kB 54.5 MB/s 
-     |████████████████████████████████| 212 kB 54.7 MB/s 
-     |████████████████████████████████| 127 kB 33.0 MB/s 
-     |████████████████████████████████| 1.6 MB 46.5 MB/s 
-  Building wheel for emoji (setup.py) ... done
-</pre>
-</div>
-</div>
-
-</div>
-</div>
-
-</div>
-    {% endraw %}
-
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
 <h2 id="1.-Sentiment-Analysis-with-VADER">1. Sentiment Analysis with VADER<a class="anchor-link" href="#1.-Sentiment-Analysis-with-VADER"> </a></h2><p>VADER relies on a lexicon of words, each with an associated polarity score. There are actually multiple scores but we will use <strong>compound score</strong>, which ranges from -1 (very negative) to 1 (very positive), and can be anywhere in between depending on the intensity of the sentiment. As mentioned in the introduction, the score of a sentence is roughly given by adding the scores of the individual words up, <em>except</em> that there are some heuristic rules. One such rule is inverting the score of a word if it is preceded by "not". Considering how simple this method is, it works surprisingly well. One helpful feature is that <strong>the sentiment lexicon even contains emojis</strong>, which are used in many reviews.</p>
