@@ -4,7 +4,7 @@ title: About Me
 permalink: /about/
 ---
 
-Math PhD, self-taught in Python, stats, and machine learning while my Green Card application was pending. Most recently a postdoc at Lehigh University doing research on [Topological Robotics](https://math.uchicago.edu/~shmuel/AAT-readings/Robotics/Farber%20robotics%20survey.pdf).
+Math PhD, self-taught in Python, stats, and machine learning while my Green Card application was pending. Currently I am a Software Engineer at [Mobi](https://www.takemobi.com/). Before that I was a postdoc at [Lehigh University](https://www1.lehigh.edu/) doing research on [Topological Robotics](https://math.uchicago.edu/~shmuel/AAT-readings/Robotics/Farber%20robotics%20survey.pdf).
 
 Grew up in Spain 🇪🇸, studied math and physics in Germany 🇩🇪, and did my PhD in the UK 🇬🇧.
 

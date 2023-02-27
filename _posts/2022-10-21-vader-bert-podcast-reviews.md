@@ -1,6 +1,6 @@
 ---
 keywords: fastai
-description: "In another notebook we trained a recommender using on a million ratings from Apple Podcasts. However, we didn't use the content of the reviews, which are an additional source of signal of user preference. Some of that signal can be extracted using sentiment analysis. In this post we will do so using two methods: VADER and BERT."
+description: "In a previous post we trained a recommender on a million ratings from Apple Podcasts. However, we didn't use the content of the reviews, which are an additional source of signal of user preference. Some of that signal can be extracted using sentiment analysis. In this post we will do so using two methods: VADER and BERT."
 title: Comparing the Sentiment of Reviews and Ratings, with VADER and BERT
 toc: True
 nb_path: _notebooks/2022-10-21-vader-bert-podcast-reviews.ipynb
