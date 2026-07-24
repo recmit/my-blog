@@ -5,12 +5,12 @@ jobs:
  check-config:
    runs-on: ubuntu-latest
    steps:
-    - uses: actions/checkout@main
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
     - name: Set up Python
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
       with:
-        python-version: 3.7
+        python-version: "3.12"
 
     - name: install dependencies
       run:  pip3 install pyyaml
@@ -38,8 +38,8 @@ jobs:
       shell: python
 
     - name: Create issue if baseurl rule is violated
-      if: steps.baseurl.outcome == 'failure'
-      uses: actions/github-script@0.6.0
+      if: ${{ failure() && steps.baseurl.outcome == 'failure' }}
+      uses: actions/github-script@5363c89495e2ddaea4a64feb5f586af2cb6118c0 # v0.6.0
       with:
         github-token: ${{secrets.GITHUB_TOKEN}}
         script: |
@@ -65,8 +65,8 @@ jobs:
       shell: python
 
     - name: Create Issue if User Pages rule is violated
-      if: steps.userpage.outcome == 'failure'
-      uses: actions/github-script@0.6.0
+      if: ${{ failure() && steps.userpage.outcome == 'failure' }}
+      uses: actions/github-script@5363c89495e2ddaea4a64feb5f586af2cb6118c0 # v0.6.0
       with:
         github-token: ${{secrets.GITHUB_TOKEN}}
         script: |

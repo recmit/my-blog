@@ -4,6 +4,8 @@ title: Contact
 permalink: /contact/
 ---
 
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>
+
 <form accept-charset="UTF-8" action="https://formspree.io/f/mjvlaznv" method="POST">
       <div class="form-group">
         <label for="email">Email address</label>
