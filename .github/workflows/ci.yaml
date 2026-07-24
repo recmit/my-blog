@@ -11,19 +11,9 @@ jobs:
   build-site:
     if: ( github.event.commits[0].message != 'Initial commit' ) || github.run_number > 1
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
-      
-    - name: Check if secret exists
-      if: github.event_name == 'push'
-      run: |
-        if [ -z "$deploy_key" ]
-        then
-          echo "You do not have a secret named SSH_DEPLOY_KEY.  This means you did not follow the setup instructions carefully.  Please try setting up your repo again with the right secrets."
-          exit 1;
-        fi
-      env:
-       deploy_key: ${{ secrets.SSH_DEPLOY_KEY }}
-          
 
     - name: Copy Repository Contents
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -52,7 +42,7 @@ jobs:
 
     - name: Deploy
       if: github.event_name == 'push'
-      uses: peaceiris/actions-gh-pages@373f7f263a76c20808c831209c920827a82a2847 # v3
+      uses: peaceiris/actions-gh-pages@84c30a85c19949d7eee79c4ff27748b70285e453 # v4.1.0
       with:
-        deploy_key: ${{ secrets.SSH_DEPLOY_KEY }}
+        github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_dir: ./_site
