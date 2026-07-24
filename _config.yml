@@ -14,7 +14,7 @@ github_repo: "my-blog"
 
 # OPTIONAL: override baseurl and url if using a custom domain
 # Note: leave out the trailing / from this value. 
-url: "david-recio.com" # the base hostname & protocol for your site, e.g. http://example.com
+url: "https://david-recio.com" # the base hostname & protocol for your site, e.g. http://example.com
 
 ###########################################################
 #########  Special Instructions for baseurl ###############
@@ -65,6 +65,8 @@ exclude:
   - docker-compose.yml
   - action.yml
   - Makefile
+  - README.md
+  - settings.ini
 
 # this setting allows you to keep pages organized in the _pages folder
 include:
@@ -122,6 +124,3 @@ kramdown:
 feed:
   posts_limit: 5 #default posts_limit: 10
   excerpt_only: true
-  
-exclude:
-  - settings.ini

@@ -24,7 +24,7 @@ jobs:
         (github.event.issue.author_association != 'OWNER') && 
         (github.event.issue.author_association != 'COLLABORATOR') &&
         (github.event.issue.author_association != 'MEMBER')
-      uses: actions/github-script@0.6.0
+      uses: actions/github-script@5363c89495e2ddaea4a64feb5f586af2cb6118c0 # v0.6.0
       with:
         github-token: ${{secrets.GITHUB_TOKEN}}
         script: |
@@ -57,19 +57,19 @@ jobs:
     steps:
     
     - name: Set up Python
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@0f07f7f756721ebd886c2462646a35f78a8bc4de # v1
       with:
         python-version: 3.7
     
     - name: checkout latest fastpages
-      uses: actions/checkout@v2
+      uses: actions/checkout@0717577d45739eb3c851188b29f50ed6c0b2194e # v2
       with:
         repository: 'fastai/fastpages'
         path: 'new_files'
         persist-credentials: false
         
     - name: copy this repo's contents
-      uses: actions/checkout@v2
+      uses: actions/checkout@0717577d45739eb3c851188b29f50ed6c0b2194e # v2
       with:
         path: 'current_files'
         persist-credentials: false
@@ -170,7 +170,7 @@ jobs:
         upgrade_pr_path.write_text(upgrade_pr)
       shell: python
 
-    - uses: webfactory/ssh-agent@v0.4.1
+    - uses: webfactory/ssh-agent@ee29fafb6aa450493bac9136b346e51ea60a8b5e # v0.4.1
       if: steps.check_version.outputs.vbump == 'true'
       with:
           ssh-private-key: ${{ secrets.SSH_DEPLOY_KEY }}
@@ -196,7 +196,7 @@ jobs:
     - name: Open a PR
       if: steps.check_version.outputs.vbump == 'true'
       id: pr
-      uses: actions/github-script@0.6.0
+      uses: actions/github-script@5363c89495e2ddaea4a64feb5f586af2cb6118c0 # v0.6.0
       with:
         github-token: ${{secrets.GITHUB_TOKEN}}
         script: |
@@ -214,7 +214,7 @@ jobs:
   
     - name: Comment on issue if failure
       if: failure()  && (steps.check_version.outputs.vbump == 'true')
-      uses: actions/github-script@0.6.0
+      uses: actions/github-script@5363c89495e2ddaea4a64feb5f586af2cb6118c0 # v0.6.0
       with:
         github-token: ${{secrets.GITHUB_TOKEN}}
         script: |
@@ -232,7 +232,7 @@ jobs:
 
     - name: Comment on issue 
       if: steps.check_version.outputs.vbump == 'true'    
-      uses: actions/github-script@0.6.0
+      uses: actions/github-script@5363c89495e2ddaea4a64feb5f586af2cb6118c0 # v0.6.0
       with:
         github-token: ${{secrets.GITHUB_TOKEN}}
         script: |
@@ -250,7 +250,7 @@ jobs:
 
     - name: Comment on issue if version has not changed
       if: steps.check_version.outputs.vbump == 'false'    
-      uses: actions/github-script@0.6.0
+      uses: actions/github-script@5363c89495e2ddaea4a64feb5f586af2cb6118c0 # v0.6.0
       with:
         github-token: ${{secrets.GITHUB_TOKEN}}
         script: |
@@ -263,7 +263,7 @@ jobs:
           
     - name: Close Issue
       if: always()
-      uses: actions/github-script@0.6.0
+      uses: actions/github-script@5363c89495e2ddaea4a64feb5f586af2cb6118c0 # v0.6.0
       with:
         github-token: ${{secrets.GITHUB_TOKEN}}
         script: |
