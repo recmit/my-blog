@@ -1,1 +1,1 @@
-Sitemap: david-recio.com/sitemap.xml
+Sitemap: https://david-recio.com/sitemap.xml
