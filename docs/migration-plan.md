@@ -1,8 +1,10 @@
 # Migration plan: fastpages/Jekyll → Astro
 
-**Status:** not started
-**Branch:** `claude/portfolio-framework-recommendations-qnclw1`
-**Audience:** the implementer (human or agent).
+**Status:** not started. Next: Phase 0.
+**Audience:** the implementer (human or agent). Start with `/migrate`.
+
+The Status line above is the handoff signal — keep it in the form
+`Phase N complete. Next: Phase N+1.` so the next agent can read it.
 
 This file is a *work order*, not permanent documentation. It is prescriptive on
 purpose. Delete it once the migration lands. The docs it tells you to write
@@ -52,7 +54,9 @@ do not silently substitute an alternative.
 - Do not re-execute notebooks or install pandas/torch/transformers.
 - Do not change any URL in Appendix A.
 - Do not delete Jekyll files before Phase 7.
-- Do not open a pull request unless the user asks.
+- Do not merge anything, and do not push to `master`. End your phase with a
+  pull request and leave it open. Do not open PRs mid-phase, and do not include
+  work from a phase you were not assigned.
 - Do not add an SSR adapter, server endpoints, or Cloudflare config. Static only.
 - Do not redesign wholesale. Improvements in Phase 5 are the agreed scope.
 - Do not write docs longer than the budgets in Phase 6.
@@ -87,15 +91,42 @@ astro.config.mjs  package.json  .nvmrc
 Each phase ends with a **gate**. Do not start the next phase until the gate
 passes. Commit at every gate.
 
-### Phase 0 — Baseline
+**One agent per group, in sequence — never two at once.** The groups below are
+context boundaries, not parallel tracks: the dependency graph is close to
+linear, and a fresh agent starting from these docs beats one carrying 600 KB of
+notebook JSON in its context. Each group ends with a pull request; the owner
+reviews and merges before the next begins.
+
+| Agent | Phases |
+|---|---|
+| A | 0–1 — baseline, parity test, scaffold |
+| B | 2 — notebook conversion, isolated and context-heavy |
+| C | 3–4 — routes, layouts, feature parity |
+| D | 5–6 — improvements, tests, docs |
+| E | 7 — cutover, only once approved |
+
+Do not split a phase across agents. In particular, do not convert the five
+notebooks with five agents: the conversion script is written once and run five
+times, or you get five inconsistent conversions.
+
+### Phase 0 — Baseline and the parity test
 
 - Fetch `origin/gh-pages` (the currently deployed output) into a scratch dir.
   It is the ground truth for both URLs and rendered appearance.
 - Save the URL list from Appendix A as `tests/expected-urls.json`.
 - Save a copy of one rendered post (e.g. `2022/03/19/grades-analysis.html`) for
   visual comparison later.
+- **Write `tests/urls.test.ts` now**, asserting that every path in
+  `expected-urls.json` exists in `dist/`. It will fail — there is no `dist/`
+  yet. That is correct; commit it red.
 
-**Gate:** `tests/expected-urls.json` exists and contains 13 paths.
+The test is written here, before any routing exists, and by a different agent
+than the one that builds the routes. If the agent building routes also writes
+the test that checks them, a misreading of the URL scheme lands in both and the
+test passes while every inbound link breaks.
+
+**Gate:** `tests/expected-urls.json` contains the 13 paths from Appendix A, and
+`tests/urls.test.ts` exists.
 
 ### Phase 1 — Scaffold Astro alongside Jekyll
 
@@ -121,7 +152,9 @@ Astro and Jekyll can coexist: Astro owns `src/`, `public/`, `astro.config.mjs`,
   }
   ```
 
-**Gate:** `npm run build` produces a `dist/`, and the Jekyll build still succeeds.
+**Gate:** `npm run build` produces a `dist/`, the Jekyll build still succeeds,
+and the parity test runs and fails for the right reason — missing routes, not a
+syntax error.
 
 ### Phase 2 — Notebook conversion (highest risk — do it early)
 
@@ -156,7 +189,8 @@ plots, pandas HTML tables, and long output blocks.
 - Pages: `/` (home), `/about/`, `/contact/`, `/search/`, `/404.html`.
 - Port About and Contact prose verbatim from `_pages/`.
 
-**Gate:** every path in `tests/expected-urls.json` exists in `dist/`.
+**Gate:** the parity test from Phase 0 passes. Do not edit that test to make it
+pass — if it disagrees with your routes, your routes are wrong.
 
 ### Phase 4 — Feature parity
 
@@ -189,9 +223,9 @@ Ask before adding anything not on this list.
 Testing, proportionate to a five-post blog — these four, no more:
 
 1. `astro check` — types and content schema. Cheapest, catches the most.
-2. **URL parity** (`tests/urls.test.ts`) — assert `dist/` contains every path in
-   `expected-urls.json`. **This is the most important test in the repo.** It is
-   the thing standing between you and silently breaking every inbound link.
+2. **URL parity** — already written in Phase 0 and passing since Phase 3. Wire
+   it into CI here. It is the most important test in the repo: the thing between
+   you and silently breaking every inbound link.
 3. **Smoke tests** (Playwright) — each page returns 200, has an `<h1>`, and logs
    no console errors. Chromium is already available; do not run `playwright install`.
 4. **Internal link check** over `dist/` — catches bad paths from Phase 2.
@@ -277,3 +311,19 @@ Things you will encounter; all are fixed by the phases above.
   at build time. Astro replaces it with a local layout.
 - `_posts/*.md` are nbconvert output, not hand-written. Nothing there is
   authored content — the `.ipynb` files are.
+
+---
+
+## Handoff log
+
+**This log is the handoff between agents**, not the pull request descriptions —
+it arrives in `master` when a phase's PR merges, so the next agent finds it by
+reading the repo. PR descriptions are written for the owner.
+
+One entry per phase, appended at the end. **Ten lines maximum each.** Only
+three things: what differed from the plan, what the next agent needs to know,
+and anything left broken. If a step in the plan was wrong, fix the step — do
+not describe the discrepancy here.
+
+<!-- Phase 0: -->
+

@@ -30,6 +30,7 @@ arrives with the migration ([`migration-plan.md`](migration-plan.md)).
 | `tests/expected-urls.json` | The published URL surface, taken from the live deployment |
 | `tests/` | URL parity, Playwright smoke tests, internal link check |
 | `.github/workflows/deploy.yml` | Build → GitHub Pages |
+| `.claude/skills/migrate/` | The `/migrate` command. Temporary — delete once the migration lands |
 
 ## Still present, due for deletion
 
