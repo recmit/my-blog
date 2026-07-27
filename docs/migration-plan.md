@@ -100,10 +100,14 @@ reviews and merges before the next begins.
 | Agent | Phases |
 |---|---|
 | A | 0–1 — baseline, parity test, scaffold |
-| B | 2 — notebook conversion, isolated and context-heavy |
+| B | 2 — notebook conversion. Isolated: the notebooks are 1.8 MB, ~95% of it stored outputs and base64 |
 | C | 3–4 — routes, layouts, feature parity |
-| D | 5–6 — improvements, tests, docs |
-| E | 7 — cutover, only once approved |
+| D | 5 — improvements. Reads all five posts to draft TL;DRs, so it gets its own agent |
+| E | 6 — tests and docs |
+| F | 7 — cutover, only once approved |
+
+Agent D should work post by post — draft, commit, move on — rather than
+reading all five before writing anything.
 
 Do not split a phase across agents. In particular, do not convert the five
 notebooks with five agents: the conversion script is written once and run five
@@ -208,7 +212,23 @@ pass — if it disagrees with your routes, your routes are wrong.
 
 - **Home page**: short intro + post list, replacing the current bare `# Posts`.
 - **TL;DR block** on each archived post: 3–5 bullets in the `tldr` front matter
-  field, rendered above the content. This is the "summarize" the user asked for.
+  field, rendered above the content. Draft these; the owner reviews and edits.
+  Three rules, because this is the only *authored* content in the migration and
+  it carries the owner's name:
+
+  - **Anchor on the post's existing `description` field.** The owner wrote those
+    in 2022 and they are accurate. Expand them into bullets — do not invent a
+    fresh framing or re-characterise the work.
+  - **Say what the post concluded**, not only what it did. The descriptions
+    already cover the method; the findings sit at the bottom of the notebook and
+    are the reason a reader keeps going.
+  - **Flag every bullet you are less than certain about** in the PR description.
+    A fluent, confident, wrong summary of someone else's statistics is the worst
+    output this migration can produce. Uncertainty is cheap to check; a wrong
+    claim published under the owner's name is not.
+
+  Put all five drafts in the PR description so they can be read together without
+  opening five files.
 - **Archive note** on each 2022 post: one line, e.g. *"Written in 2022, when I
   was moving from mathematics into industry. Left as it was."*
 - **Reading time** (currently commented out at `_layouts/post.html:39`).
