@@ -67,6 +67,7 @@ exclude:
   - Makefile
   - README.md
   - settings.ini
+  - tests
 
 # this setting allows you to keep pages organized in the _pages folder
 include:

@@ -1,6 +1,6 @@
 # Migration plan: fastpages/Jekyll → Astro
 
-**Status:** not started. Next: Phase 0.
+**Status:** Phase 0 complete. Next: Phase 1.
 **Audience:** the implementer (human or agent). Start with `/migrate`.
 
 The Status line above is the handoff signal — keep it in the form
@@ -138,8 +138,9 @@ Astro and Jekyll can coexist: Astro owns `src/`, `public/`, `astro.config.mjs`,
 `package.json`; Jekyll owns the `_*` directories. They do not collide.
 
 - `npm create astro@latest` — minimal template, TypeScript strict.
-- Add `src/`, `public/`, `node_modules`, `dist`, `package.json`, `package-lock.json`,
-  `tests` to `exclude:` in `_config.yml` so the Jekyll build ignores them.
+- Add `src/`, `public/`, `node_modules`, `dist`, `package.json`, `package-lock.json`
+  to `exclude:` in `_config.yml` so the Jekyll build ignores them. (`tests` is
+  already excluded — Phase 0 creates that directory, so it excludes it too.)
 - Pin Node in `.nvmrc` and use the same version in CI.
 - Define the content collection schema in `src/content.config.ts`:
 
@@ -346,4 +347,15 @@ and anything left broken. If a step in the plan was wrong, fix the step — do
 not describe the discrepancy here.
 
 <!-- Phase 0: -->
+
+**Phase 0** — Appendix A verified against `origin/gh-pages` @ `d447eaf`: all 13
+paths resolve to non-empty files, list unchanged.
+`tests/urls.test.ts` targets **vitest**; Phase 1 must add it plus an `npm test`
+script. Until then it is red for want of vitest, not routing. Its URL→file
+mapping (trailing slash → `index.html`, else verbatim) is validated against the
+deployed output, so a Phase 3 failure means the routes are wrong.
+`tests` was excluded in `_config.yml` here, not Phase 1 — Phase 0 creates
+`tests/`, and otherwise Jekyll publishes the 450 KB baseline live on merge.
+Phase 1's step is edited to match.
+`.gitignore` has a bare `*.xml` that would swallow XML committed outside `dist/`.
 
