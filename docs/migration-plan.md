@@ -277,6 +277,10 @@ If a doc wants to exceed its budget, cut it instead.
   `settings.ini`, `index.html`, `assets/`, `.devcontainer.json`, and the
   `check_cdns`, `check_config`, `docker-nbdev`, `upgrade`, `gh-page` workflows.
 - Keep: `notebooks/`, `images/` (as needed), `CNAME`, `LICENSE`, `.gitattributes`.
+- Also delete, now that their jobs are done: `tests/baseline/` (the deployed
+  `origin/gh-pages` branch remains the permanent record of the old site, so the
+  baseline is only a working convenience for Phase 2) and
+  `.claude/skills/migrate/` along with this plan.
 
 **Gate:** URL parity passes against the deleted-Jekyll build. Then hand back to
 the user for review and merge.
@@ -354,8 +358,8 @@ paths resolve to non-empty files, list unchanged.
 script. Until then it is red for want of vitest, not routing. Its URL→file
 mapping (trailing slash → `index.html`, else verbatim) is validated against the
 deployed output, so a Phase 3 failure means the routes are wrong.
-`tests` was excluded in `_config.yml` here, not Phase 1 — Phase 0 creates
-`tests/`, and otherwise Jekyll publishes the 450 KB baseline live on merge.
-Phase 1's step is edited to match.
+`tests` was excluded in `_config.yml` here, not Phase 1 — Phase 0 creates it,
+and otherwise Jekyll publishes the 450 KB baseline live on merge. Phase 1's
+step is edited to match.
 `.gitignore` has a bare `*.xml` that would swallow XML committed outside `dist/`.
 
