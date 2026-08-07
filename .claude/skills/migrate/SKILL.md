@@ -25,7 +25,19 @@ Work out which phase is yours:
 - If that line is missing, ambiguous, or disagrees with what is actually on
   disk, **stop and ask.** Do not guess.
 
-Say which phase you are starting and what its gate is, then begin.
+Say which phase you are starting and what its gate is.
+
+Then **create a fresh branch off `origin/master`** for this phase:
+
+```sh
+git fetch origin master
+git checkout -B claude/migrate-phase-<N> origin/master
+```
+
+One branch and one PR per phase. Never reuse a branch whose PR has already
+merged — phase PRs are squash-merged, so the old commits keep a different SHA
+from the squashed one on `master` and the branch re-proposes work that is
+already there, which conflicts.
 
 ## 2. Work
 
