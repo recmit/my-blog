@@ -9,10 +9,12 @@ directories, `Gemfile`) still publishes the live site; the Astro tree (`src/`,
 last, and only with the owner's approval.
 
 Run a single phase with `/migrate`. **If that isn't recognized** — project
-skill registration can lag or fail in cloud sessions — paste this instead, it
-does the same thing:
+skill discovery can be lazy in cloud sessions, registering only once something
+reads the directory — try, in order:
 
-> Follow `.claude/skills/migrate/SKILL.md` to run the next migration phase.
+1. Ask Claude to check the repo for custom skills. This alone has fixed it.
+2. Paste directly: "Follow `.claude/skills/migrate/SKILL.md` to run the next
+   migration phase."
 
 ## Commands
 
