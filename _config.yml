@@ -68,6 +68,12 @@ exclude:
   - README.md
   - settings.ini
   - tests
+  - src
+  - public
+  - node_modules
+  - dist
+  - package.json
+  - package-lock.json
 
 # this setting allows you to keep pages organized in the _pages folder
 include:

@@ -1,6 +1,6 @@
 # Migration plan: fastpages/Jekyll → Astro
 
-**Status:** Phase 0 complete. Next: Phase 1.
+**Status:** Phase 1 complete. Next: Phase 2.
 **Audience:** the implementer (human or agent). Start with `/migrate`.
 
 The Status line above is the handoff signal — keep it in the form
@@ -363,3 +363,14 @@ and otherwise Jekyll publishes the 450 KB baseline live on merge. Phase 1's
 step is edited to match.
 `.gitignore` has a bare `*.xml` that would swallow XML committed outside `dist/`.
 
+<!-- Phase 1: -->
+
+**Phase 1** — `npm create astro@latest` couldn't run: GitHub template fetch
+is 403 through this sandbox's proxy. Scaffolded by hand instead: `astro@6.4.8`,
+`astro.config.mjs`, `tsconfig.json`, `content.config.ts`, a placeholder
+`src/pages/index.astro`. `content.config.ts` imports `z` from `astro/zod`,
+not `astro:content` — deprecated in Astro 6, removed in 7. `tsconfig.json`
+excludes the Jekyll dirs, else `astro check` typechecks `assets/js/search.js`
+(Liquid). Could not run the CI Jekyll build — no docker daemon here;
+`_config.yml`/`.gitignore` changes are additive-only, unverified in real CI.
+`npm test` runs vitest; parity test fails on missing routes, as expected.
