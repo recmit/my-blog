@@ -45,6 +45,8 @@ URLs in `astro dev` lack the `.html` the built files carry.
 
 ## URLs frozen
 
-The published URL surface predates this repo's current shape and is linked from
-job applications. It is pinned in `tests/expected-urls.json` and enforced by a
-test, rather than left to convention and good intentions.
+The published URL surface predates this repo's current shape, and GitHub Pages
+serves files with no server-side redirects — so a changed path is a hard 404,
+not a redirect. Keeping the paths costs one build setting; replacing them would
+cost a stub page per old URL. It is pinned in `tests/expected-urls.json` and
+enforced by a test, rather than left to convention and good intentions.
