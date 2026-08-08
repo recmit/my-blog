@@ -1,6 +1,6 @@
 # Migration plan: fastpages/Jekyll → Astro
 
-**Status:** Phase 2 complete. Next: Phase 3.
+**Status:** Phase 3 complete. Next: Phase 4.
 **Audience:** the implementer (human or agent). Start with `/migrate`.
 
 The Status line above is the handoff signal — keep it in the form
@@ -195,14 +195,19 @@ plots, pandas HTML tables, and long output blocks.
 
 - Base layout: `<head>`, nav, footer, GA4.
 - Post layout, page layout.
-- Post route generating the `.html` URLs from Appendix A. Note the site mixes
-  formats: posts are `/…/slug.html`, pages are `/about/`. Get the mechanism
-  from the Astro docs; the parity test in Phase 6 is what proves it correct.
+- Post route generating the `.html` URLs from Appendix A. The site mixes
+  formats — posts are `/…/slug.html`, pages are `/about/` — so the build uses
+  `build.format: 'preserve'`: each route lands where its source file sits, and
+  every page route is a directory with an `index.astro` in it. The parity test
+  is what proves it correct.
 - Pages: `/` (home), `/about/`, `/contact/`, `/search/`, `/404.html`.
 - Port About and Contact prose verbatim from `_pages/`.
 
-**Gate:** the parity test from Phase 0 passes. Do not edit that test to make it
-pass — if it disagrees with your routes, your routes are wrong.
+**Gate:** every *page* in the parity test passes — the five posts, `/`,
+`/about/`, `/contact/`, `/search/`, `/404.html`. Its three remaining paths
+(`feed.xml`, `sitemap.xml`, `robots.txt`) are Phase 4's, and stay red until
+then. Do not edit the test to make it pass — if it disagrees with your routes,
+your routes are wrong.
 
 ### Phase 4 — Feature parity
 
@@ -214,7 +219,9 @@ pass — if it disagrees with your routes, your routes are wrong.
   Self-host what you need — **drop the Primer and FontAwesome CDN links**
   currently in `_includes/custom-head.html`.
 
-**Gate:** feed, sitemap and search all work in a local preview build.
+**Gate:** feed, sitemap and search all work in a local preview build, and the
+parity test now passes in full — this is the phase that turns its last three
+paths green.
 
 ### Phase 5 — Improvements (agreed scope — nothing beyond this)
 
@@ -395,3 +402,17 @@ until then remark reads `_` in `$y_{i,j}$` as emphasis — install the plugin,
 do not "escape" the math. Images are `![](./output_<cell>_<n>.png)` with empty
 alt text (nbconvert's `![png]` names the format, not the figure); Phase 5 owns
 real alt text. `notebooks/{README.md,ghtop_images/,my_icons/}` go in Phase 7.
+
+<!-- Phase 3: -->
+
+**Phase 3** — The two URL shapes forced `build.format: 'preserve'`; the step and
+`docs/decisions.md` now record it. Consequence for later phases: **a new page is
+`src/pages/<name>/index.astro`**, never `<name>.astro`, or it publishes as
+`<name>.html`. Post URLs in `astro dev` have no `.html` — only the built files
+do, so check routing against `astro preview`, not `dev`.
+Date→URL conversion reads UTC (`src/lib/posts.ts`); a local-time build would
+move a post a day back. Markdown images are already optimized to webp by
+default, so Phase 5's `<Image>` item is about alt text and figures, not formats.
+Left dangling on purpose: the footer's `/feed.xml` link, and `/search/`, which
+has the input markup but no Pagefind. Both are Phase 4.
+`docs/decisions.md` is now over its Phase 6 budget — cut there.

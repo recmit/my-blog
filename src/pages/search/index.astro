@@ -1,0 +1,23 @@
+---
+/**
+ * The search page. The route and its markup exist here; Pagefind is wired up
+ * in Phase 4, which is when the input starts returning results.
+ */
+import PageLayout from '../../layouts/PageLayout.astro';
+---
+
+<PageLayout title="Search">
+  <div class="search">
+    <div class="search-input-wrap">
+      <input
+        type="text"
+        class="search-input"
+        tabindex="0"
+        placeholder="Search David Recio's Blog"
+        aria-label="Search David Recio's Blog"
+        autocomplete="off"
+      />
+    </div>
+    <div class="search-results-wrap"></div>
+  </div>
+</PageLayout>
