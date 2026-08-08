@@ -370,22 +370,6 @@ and otherwise Jekyll publishes the 450 KB baseline live on merge. Phase 1's
 step is edited to match.
 `.gitignore` has a bare `*.xml` that would swallow XML committed outside `dist/`.
 
-<!-- Phase 2: -->
-
-**Phase 2** — nbconvert handles the notebooks without drama; the work was the
-fastpages directives, now documented in the step above. Dropping `#hide` cells
-also removes the only ANSI escapes (pip output), so nothing needed unmangling.
-Fidelity was checked by asserting every retained cell's source appears verbatim
-in the output — do that, not a diff against the deployed HTML, whose KaTeX and
-Liquid make text comparison useless.
-Math is intact as LaTeX but **unrendered until Phase 4** adds `remark-math`;
-until then remark reads `_` in `$y_{i,j}$` as emphasis. Installing the plugin
-fixes it — do not "escape" the math instead.
-Images are `![](./output_<cell>_<n>.png)`, alt text deliberately empty:
-nbconvert's `![png]` names the file format, not the figure. Phase 5 owns real
-alt text. `notebooks/{README.md,ghtop_images/,my_icons/}` are unreferenced
-fastpages samples, moved by the rename — delete in Phase 7.
-
 <!-- Phase 1: -->
 
 **Phase 1** — `npm create astro@latest` can't fetch templates here: egress policy
@@ -398,3 +382,16 @@ excludes the Jekyll dirs, else `astro check` typechecks `assets/js/search.js`,
 which is Liquid). `content.config.ts` imports `z` from `astro/zod`; the
 `astro:content` re-export goes away in Astro 7. No docker daemon and no runnable
 Ruby here, so CI on the PR is the only proof the Jekyll build still works.
+
+<!-- Phase 2: -->
+
+**Phase 2** — nbconvert was uneventful; the fastpages directives were the work,
+and the step above now documents them. Dropping `#hide` cells also removed the
+only ANSI escapes, so nothing needed unmangling. Check fidelity by asserting
+every retained cell's source appears verbatim in the output — not by diffing the
+deployed HTML, whose KaTeX and Liquid make text comparison useless.
+Math is intact as LaTeX but **unrendered until Phase 4** adds `remark-math`;
+until then remark reads `_` in `$y_{i,j}$` as emphasis — install the plugin,
+do not "escape" the math. Images are `![](./output_<cell>_<n>.png)` with empty
+alt text (nbconvert's `![png]` names the format, not the figure); Phase 5 owns
+real alt text. `notebooks/{README.md,ghtop_images/,my_icons/}` go in Phase 7.
