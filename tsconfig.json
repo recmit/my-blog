@@ -10,7 +10,7 @@
     "_fastpages_docs",
     "_includes",
     "_layouts",
-    "_notebooks",
+    "notebooks",
     "_pages",
     "_plugins",
     "_sass",

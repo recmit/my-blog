@@ -7,7 +7,7 @@ _site
 .jekyll-metadata
 *.xml
 vendor
-_notebooks/.ipynb_checkpoints
+notebooks/.ipynb_checkpoints
 # Local Netlify folder
 .netlify
 .tweet-cache
@@ -16,3 +16,4 @@ __pycache__
 node_modules
 dist
 .astro
+.venv-nbconvert
