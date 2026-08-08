@@ -225,19 +225,27 @@ Now we need to take bootstrap resamples to approximate the distributions of each
 We do the bootstrap resampling under the null hypothesis, i.e. that assuming all the group means are the same. In order to do the resampling, we need to estimate the pooled mean $\mu_0$ and the group variances $\sigma_j^2$, and then use those to compute the studentized residuals $e_{i,j}$.
 
 Let $n_i$ denote the number of students in group $i$, let $\bar y_i$ denote the sample means of each group and let $s_i^2$ denote the sample variances. To estimate the mean under the null hypothesis we weight the sample means with the factors $w_i = n_i/s_i^2$ (which are the reciprocals of the squared standard errors of the sample means). This gives the groups with larger variance a smaller weight to reduce the standard error in the estimate of the pooled mean. The null estimate of the mean is:
-$$\hat\mu_0 = \frac{\sum_{i=1}^nw_i\bar y_i}{\sum_{i=1}^nw_i}$$
+$$
+\hat\mu_0 = \frac{\sum_{i=1}^nw_i\bar y_i}{\sum_{i=1}^nw_i}
+$$
 
 The null estimates of the variances are given by:
-$$\hat\sigma_{i,0}^2 = \frac{n_i-1}{n_i}s_i^2 + (\bar y_i - \hat\mu_0)^2$$
+$$
+\hat\sigma_{i,0}^2 = \frac{n_i-1}{n_i}s_i^2 + (\bar y_i - \hat\mu_0)^2
+$$
 
 Now we have the necessary estimates to compute the studentized residuals:
-$$e_{i,j} = \frac{y_{i,j} - \hat\mu_0}{\sqrt{\hat\sigma_{i,0}^2 - (\sum_i w_i)^{-1}}}$$
+$$
+e_{i,j} = \frac{y_{i,j} - \hat\mu_0}{\sqrt{\hat\sigma_{i,0}^2 - (\sum_i w_i)^{-1}}}
+$$
 
 The bootstrap now resamples $\epsilon_{i,j}^*$ from the $e_{i,j}$ and replicates the $y_{i,j}$ as $y_{i,j}^* = \hat\mu_0 + \hat\sigma_{i,0}\epsilon_{i,j}^*$.
 
 #### The Statistic
 In order to determine how extreme the differences between the group means are in our data we need an appropriate statistic. Following the book I mentioned above, we will use the statistic
-$$\tilde F = \sum_{i=1}^k w_i(\bar y_i - \hat\mu_0)^2.$$
+$$
+\tilde F = \sum_{i=1}^k w_i(\bar y_i - \hat\mu_0)^2.
+$$
 Note that this is similar to the F-test statistic (hence the notation). The larger the differences between the sample means, the more extreme the value $\tilde F$ is. We use the weights $w_i$ introduced above to give sample means from groups with higher variance lower weight. This makes sense because the sample means of groups with higher variance will naturally deviate more strongly from the true mean $\mu_0$ (under the null hypothesis). By multiplying by $w_i$ we are essentially normalizing the squared errors by dividing by the squared standard error of the sample means.
 
 #### Implementation of the Bootstrap Test

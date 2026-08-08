@@ -1,23 +1,27 @@
 ---
 /**
- * The search page. The route and its markup exist here; Pagefind is wired up
- * in Phase 4, which is when the input starts returning results.
+ * Search, powered by Pagefind — the replacement for the site's lunr index.
+ *
+ * Pagefind indexes `dist/` *after* the Astro build (see the `build` script in
+ * package.json), so its assets live at `/pagefind/`, outside anything Astro
+ * knows about. That is why the UI is loaded with plain tags rather than an
+ * import: there is nothing on disk for Vite to resolve at build time.
+ *
+ * Consequence: search returns nothing under `astro dev`, because no index has
+ * been written yet. Check it with `npm run build && npm run preview`.
  */
 import PageLayout from '../../layouts/PageLayout.astro';
 ---
 
-<PageLayout title="Search">
+<PageLayout title="Search" indexed={false}>
+  <link rel="stylesheet" href="/pagefind/pagefind-ui.css" />
   <div class="search">
-    <div class="search-input-wrap">
-      <input
-        type="text"
-        class="search-input"
-        tabindex="0"
-        placeholder="Search David Recio's Blog"
-        aria-label="Search David Recio's Blog"
-        autocomplete="off"
-      />
-    </div>
-    <div class="search-results-wrap"></div>
+    <div id="search"></div>
   </div>
+  <script is:inline src="/pagefind/pagefind-ui.js"></script>
+  <script is:inline>
+    window.addEventListener('DOMContentLoaded', () => {
+      new PagefindUI({ element: '#search', showSubResults: true, showImages: false });
+    });
+  </script>
 </PageLayout>

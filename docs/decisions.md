@@ -43,6 +43,15 @@ The frozen URLs come in two shapes: posts are `/2022/03/19/slug.html`, pages are
 Costs: every page route is a directory with an `index.astro` inside, and post
 URLs in `astro dev` lack the `.html` the built files carry.
 
+## Sitemap hand-rolled, not `@astrojs/sitemap`
+
+The integration publishes a `sitemap-index.xml` pointing at numbered chunks; the
+live site has a single `/sitemap.xml`, which `robots.txt` names. Taking the
+integration would have moved a frozen URL to buy pagination a nine-URL site
+cannot use. `src/pages/sitemap.xml.ts` is ~30 lines.
+
+Costs: the page list is written by hand, so a new page needs a line there.
+
 ## URLs frozen
 
 The published URL surface predates this repo's current shape, and GitHub Pages
