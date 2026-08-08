@@ -6,7 +6,13 @@ How to work in this repo. Keep it this short.
 directories, `Gemfile`) still publishes the live site; the Astro tree (`src/`,
 `astro.config.mjs`) is being built alongside it. Phase order and gates:
 [`docs/migration-plan.md`](docs/migration-plan.md). The Jekyll tree is deleted
-last, and only with the owner's approval. Run a single phase with `/migrate`.
+last, and only with the owner's approval.
+
+Run a single phase with `/migrate`. **If that isn't recognized** — project
+skill registration can lag or fail in cloud sessions — paste this instead, it
+does the same thing:
+
+> Follow `.claude/skills/migrate/SKILL.md` to run the next migration phase.
 
 ## Commands
 
