@@ -1,0 +1,83 @@
+---
+/**
+ * The page shell: <head>, site nav, site footer, analytics.
+ *
+ * SEO/Open Graph meta and stylesheets are deliberately absent — Phase 4 owns
+ * them. What is here is what every page needs to exist and be navigable.
+ */
+interface Props {
+  title: string;
+}
+
+const { title } = Astro.props;
+
+const GA_MEASUREMENT_ID = 'G-J4ZRL7L1T1';
+const siteTitle = "David Recio's Blog";
+const pageTitle = title === siteTitle ? siteTitle : `${title} | ${siteTitle}`;
+
+const navLinks = [
+  { href: '/about/', label: 'About Me' },
+  { href: '/contact/', label: 'Contact' },
+  { href: '/search/', label: 'Search' },
+];
+
+const socialLinks = [
+  { href: 'https://github.com/recmit', label: 'GitHub' },
+  { href: 'https://www.linkedin.com/in/david-recio-mitter', label: 'LinkedIn' },
+];
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="/images/favicon.ico" sizes="any" />
+    <title>{pageTitle}</title>
+    {
+      import.meta.env.PROD && (
+        <>
+          <script
+            is:inline
+            async
+            src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
+          />
+          <script is:inline define:vars={{ GA_MEASUREMENT_ID }}>
+            window.dataLayer = window.dataLayer || [];
+            function gtag() {
+              dataLayer.push(arguments);
+            }
+            gtag('js', new Date());
+            gtag('config', GA_MEASUREMENT_ID);
+          </script>
+        </>
+      )
+    }
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="site-title" rel="author" href="/">{siteTitle}</a>
+      <nav class="site-nav">
+        {navLinks.map(({ href, label }) => <a class="page-link" href={href}>{label}</a>)}
+      </nav>
+    </header>
+
+    <main class="page-content">
+      <slot />
+    </main>
+
+    <footer class="site-footer">
+      <p class="feed-subscribe"><a href="/feed.xml">Subscribe</a></p>
+      <ul class="social-media-list">
+        {
+          socialLinks.map(({ href, label }) => (
+            <li>
+              <a rel="me" href={href}>
+                {label}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </footer>
+  </body>
+</html>

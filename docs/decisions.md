@@ -33,6 +33,16 @@ one-way door.
 
 Rules out: a backend. The contact form goes through Formspree as a result.
 
+## `build.format: 'preserve'`
+
+The frozen URLs come in two shapes: posts are `/2022/03/19/slug.html`, pages are
+`/about/`. Astro's `directory` format would publish the posts as
+`slug.html/index.html`; `file` would flatten the pages to `about.html`.
+`preserve` writes each route where its source file sits, so both shapes coexist.
+
+Costs: every page route is a directory with an `index.astro` inside, and post
+URLs in `astro dev` lack the `.html` the built files carry.
+
 ## URLs frozen
 
 The published URL surface predates this repo's current shape and is linked from

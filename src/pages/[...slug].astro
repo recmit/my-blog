@@ -1,0 +1,26 @@
+---
+/**
+ * The post route. Emits `/YYYY/MM/DD/<slug>.html` — the paths Jekyll
+ * published. The `.html` comes from `build.format: 'preserve'` (see
+ * `astro.config.mjs`), not from the param.
+ */
+import PostLayout from '../layouts/PostLayout.astro';
+import { getPublishedPosts, postPathname } from '../lib/posts';
+import { render } from 'astro:content';
+import type { GetStaticPaths } from 'astro';
+
+export const getStaticPaths = (async () => {
+  const posts = await getPublishedPosts();
+  return posts.map((post) => ({
+    params: { slug: postPathname(post) },
+    props: { post },
+  }));
+}) satisfies GetStaticPaths;
+
+const { post } = Astro.props;
+const { Content } = await render(post);
+---
+
+<PostLayout post={post}>
+  <Content />
+</PostLayout>

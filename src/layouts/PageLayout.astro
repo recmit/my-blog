@@ -1,0 +1,21 @@
+---
+/** A standalone page: About, Contact, Search, 404. */
+import BaseLayout from './BaseLayout.astro';
+
+interface Props {
+  title: string;
+  /** Pages such as 404 render their own heading, or none. */
+  showHeading?: boolean;
+}
+
+const { title, showHeading = true } = Astro.props;
+---
+
+<BaseLayout title={title}>
+  <article class="page">
+    {showHeading && <h1 class="page-heading">{title}</h1>}
+    <div class="page-content-body">
+      <slot />
+    </div>
+  </article>
+</BaseLayout>
