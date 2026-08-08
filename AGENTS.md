@@ -8,11 +8,10 @@ directories, `Gemfile`) still publishes the live site; the Astro tree (`src/`,
 [`docs/migration-plan.md`](docs/migration-plan.md). The Jekyll tree is deleted
 last, and only with the owner's approval.
 
-Run a single phase with `/migrate`. **If that isn't recognized** — project
-skill discovery can be lazy in cloud sessions, registering only once something
-reads the directory — try, in order:
+Run a single phase with `/migrate`. **If a fresh session doesn't recognize
+it** — seen once, cause unconfirmed — try, in order:
 
-1. Ask Claude to check the repo for custom skills. This alone has fixed it.
+1. Ask Claude to check the repo for custom skills, or just retry `/migrate`.
 2. Paste directly: "Follow `.claude/skills/migrate/SKILL.md` to run the next
    migration phase."
 
