@@ -15,12 +15,12 @@ arrives with the migration ([`migration-plan.md`](migration-plan.md)).
 
 | Path | What |
 |---|---|
-| `src/pages/` | One file per route. Pages are `<name>/index.astro` (they publish as `/<name>/`); `[...slug].astro` generates the dated `.html` post URLs |
+| `src/pages/` | One file per route. Pages are `<name>/index.astro` (they publish as `/<name>/`); `[...slug].astro` generates the dated `.html` post URLs; `feed.xml.ts` and `sitemap.xml.ts` are endpoints rather than pages |
 | `src/layouts/` | Page shells — `<head>`, nav, footer |
 | `src/components/` | Reusable pieces. Build-time unless marked `client:*` |
 | `src/lib/` | Non-rendering helpers. `posts.ts` owns the date→URL mapping, so the published paths are derived in exactly one place |
 | `src/styles/` | Plain CSS |
-| `public/` | Copied verbatim to the site root: `images/favicon.ico`, later `CNAME` and `robots.txt` |
+| `public/` | Copied verbatim to the site root: `images/favicon.ico`, `CNAME`, `robots.txt`. Pagefind writes its index into `dist/pagefind/` after the build, so it never appears here |
 
 ## Build and checks
 

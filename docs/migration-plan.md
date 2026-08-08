@@ -1,6 +1,6 @@
 # Migration plan: fastpages/Jekyll → Astro
 
-**Status:** Phase 3 complete. Next: Phase 4.
+**Status:** Phase 4 complete. Next: Phase 5.
 **Audience:** the implementer (human or agent). Start with `/migrate`.
 
 The Status line above is the handoff signal — keep it in the form
@@ -416,3 +416,16 @@ default, so Phase 5's `<Image>` item is about alt text and figures, not formats.
 Left dangling on purpose: the footer's `/feed.xml` link, and `/search/`, which
 has the input markup but no Pagefind. Both are Phase 4.
 `docs/decisions.md` is now over its Phase 6 budget — cut there.
+
+<!-- Phase 4: -->
+
+**Phase 4** — All 13 parity paths green. `sitemap.xml` is hand-rolled, not
+`@astrojs/sitemap`, which publishes `sitemap-index.xml` instead (`docs/decisions.md`):
+**a new page needs a line in `src/pages/sitemap.xml.ts`**.
+Math plugins go through `processor: unified({...})` from `@astrojs/markdown-remark` —
+`markdown.remarkPlugins` is deprecated in Astro 6.
+nbconvert left four `$$…$$` on single lines in grades-analysis, which remark-math
+renders inline, not display; the delimiters were rewrapped (no math or prose changed).
+Pagefind indexes after `astro build`, so **search is empty under `astro dev`** —
+check it with `npm run preview`. GA4 loads in prod builds, so Phase 6's "no console
+errors" smoke test fails in a sandbox without egress.

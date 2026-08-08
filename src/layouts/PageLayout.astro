@@ -6,13 +6,18 @@ interface Props {
   title: string;
   /** Pages such as 404 render their own heading, or none. */
   showHeading?: boolean;
+  /**
+   * Whether Pagefind indexes this page. About and Contact were in the old lunr
+   * index; Search and 404 carried `search_exclude` and stay out of it.
+   */
+  indexed?: boolean;
 }
 
-const { title, showHeading = true } = Astro.props;
+const { title, showHeading = true, indexed = true } = Astro.props;
 ---
 
 <BaseLayout title={title}>
-  <article class="page">
+  <article class="page" data-pagefind-body={indexed ? '' : undefined}>
     {showHeading && <h1 class="page-heading">{title}</h1>}
     <div class="page-content-body">
       <slot />
