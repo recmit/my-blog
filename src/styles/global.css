@@ -20,6 +20,8 @@
   --bg-subtle: #f6f8fa;
   --border: #d0d7de;
   --link: #0969da;
+  /* Search-hit highlight; the only place a background tint carries meaning. */
+  --accent-mark: #fff3c4;
 
   --radius: 6px;
 }
@@ -406,15 +408,21 @@ a:focus-visible {
   max-width: var(--measure);
 }
 
-/* Pagefind's own UI, toned down to match the rest of the page. */
-.search .pagefind-ui {
-  --pagefind-ui-scale: 0.8;
-  --pagefind-ui-primary: var(--text);
-  --pagefind-ui-text: var(--text);
-  --pagefind-ui-background: var(--bg);
-  --pagefind-ui-border: var(--border);
-  --pagefind-ui-font: var(--font-body);
-  --pagefind-ui-border-radius: var(--radius);
+/*
+ * Pagefind's Component UI theming hooks (`--pf-*`), pointed at this site's
+ * tokens so search does not arrive in its own palette. The components set
+ * their own high specificity deliberately, so theme them through these
+ * variables rather than by writing competing selectors.
+ */
+.search {
+  --pf-font: var(--font-body);
+  --pf-background: var(--bg);
+  --pf-border: var(--border);
+  --pf-border-focus: var(--link);
+  --pf-border-radius: var(--radius);
+  --pf-outline-focus: var(--link);
+  --pf-hover: var(--bg-subtle);
+  --pf-mark: var(--accent-mark);
 }
 
 /* 404 --------------------------------------------------------------------- */

@@ -5,6 +5,11 @@
  *
  * If this test disagrees with the routes, the routes are wrong. Do not edit
  * the expected list to make it pass — inbound links depend on these paths.
+ *
+ * One path is not from the deployment: the owner traded `/sitemap.xml` for
+ * `/sitemap-index.xml` in Phase 4 to get page discovery from
+ * `@astrojs/sitemap` (see `docs/decisions.md`). Nothing links to a sitemap.
+ * That is the only such exception, and it took an explicit decision to make.
  */
 
 import { readFileSync, statSync } from 'node:fs';
@@ -63,5 +68,32 @@ describe('URL parity against dist/', () => {
     expect(stat !== null, `${url} is not published — expected ${path}`).toBe(true);
     expect(stat!.isFile(), `${url} resolved to ${path}, which is not a file`).toBe(true);
     expect(stat!.size, `${url} is published but empty`).toBeGreaterThan(0);
+  });
+});
+
+/**
+ * The sitemap advertises URLs to crawlers, so a wrong path there is the same
+ * bug as a missing route — just invisible, because the file still builds.
+ *
+ * `@astrojs/sitemap` does not understand `build.format: 'preserve'` and emits
+ * post paths without their `.html` and page paths without their trailing
+ * slash; `serialize` in astro.config.mjs repairs both. This is the check on
+ * that repair.
+ */
+describe('sitemap contents', () => {
+  /** Everything a crawler should see: pages and posts, not 404 or the feeds. */
+  const crawlable = expectedUrls.filter(
+    (url) => !['/404.html', '/feed.xml', '/sitemap-index.xml', '/robots.txt'].includes(url),
+  );
+
+  function sitemapUrls(): string[] {
+    const xml = readFileSync(join(distDir, 'sitemap-0.xml'), 'utf8');
+    return [...xml.matchAll(/<loc>(.*?)<\/loc>/g)].map((m) =>
+      m[1].replace('https://david-recio.com', ''),
+    );
+  }
+
+  it('lists every crawlable URL, and only those', () => {
+    expect(sitemapUrls().sort()).toEqual(crawlable.sort());
   });
 });

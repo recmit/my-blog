@@ -52,7 +52,8 @@ do not silently substitute an alternative.
 ## Do not
 
 - Do not re-execute notebooks or install pandas/torch/transformers.
-- Do not change any URL in Appendix A.
+- Do not change any URL in Appendix A. (The owner moved one, the sitemap, in
+  Phase 4 — that took an explicit decision and is not a precedent.)
 - Do not delete Jekyll files before Phase 7.
 - Do not merge anything, and do not push to `master`. End your phase with a
   pull request and leave it open. Do not open PRs mid-phase, and do not include
@@ -211,7 +212,8 @@ your routes are wrong.
 
 ### Phase 4 — Feature parity
 
-- `feed.xml` (`@astrojs/rss`), `sitemap.xml`, `robots.txt`, `CNAME` in `public/`.
+- `feed.xml` (`@astrojs/rss`), a sitemap (`@astrojs/sitemap`), `robots.txt` and
+  `CNAME` in `public/`.
 - SEO meta + Open Graph (replaces `jekyll-seo-tag`).
 - Pagefind search on `/search/`.
 - Math CSS.
@@ -263,6 +265,8 @@ Testing, proportionate to a five-post blog — these four, no more:
    you and silently breaking every inbound link.
 3. **Smoke tests** (Playwright) — each page returns 200, has an `<h1>`, and logs
    no console errors. Chromium is already available; do not run `playwright install`.
+   GA4 and the contact page's reCAPTCHA load from CDNs, so the console-error
+   assertion needs egress or an allowance for those two hosts.
 4. **Internal link check** over `dist/` — catches bad paths from Phase 2.
 
 All four run in CI on every push to the branch.
@@ -323,12 +327,18 @@ actually live, not an inference.
 /search/
 /404.html
 /feed.xml
-/sitemap.xml
+/sitemap-index.xml
 /robots.txt
 ```
 
 Note the two formats: posts end in `.html`, pages use trailing slashes. Both
-must be preserved exactly. There are no pagination or category pages — the
+must be preserved exactly.
+
+The deployment served `/sitemap.xml`. In Phase 4 the owner traded it for
+`/sitemap-index.xml` so `@astrojs/sitemap` could discover pages instead of a
+hand-maintained list (`docs/decisions.md`). It is the only URL here that is not
+what the old site published, and it took an explicit decision. Do not treat it
+as licence to move another. There are no pagination or category pages — the
 `categories` layout exists in the Jekyll source but was never published.
 
 ## Appendix B — Known quirks in the current site
@@ -419,13 +429,13 @@ has the input markup but no Pagefind. Both are Phase 4.
 
 <!-- Phase 4: -->
 
-**Phase 4** — All 13 parity paths green. `sitemap.xml` is hand-rolled, not
-`@astrojs/sitemap`, which publishes `sitemap-index.xml` instead (`docs/decisions.md`):
-**a new page needs a line in `src/pages/sitemap.xml.ts`**.
-Math plugins go through `processor: unified({...})` from `@astrojs/markdown-remark` —
-`markdown.remarkPlugins` is deprecated in Astro 6.
-nbconvert left four `$$…$$` on single lines in grades-analysis, which remark-math
-renders inline, not display; the delimiters were rewrapped (no math or prose changed).
-Pagefind indexes after `astro build`, so **search is empty under `astro dev`** —
-check it with `npm run preview`. GA4 loads in prod builds, so Phase 6's "no console
-errors" smoke test fails in a sandbox without egress.
+**Phase 4** — All 13 parity paths green. The owner traded `/sitemap.xml` for
+`@astrojs/sitemap`'s `/sitemap-index.xml` (Appendix A, `docs/decisions.md`).
+**The integration ignores `build.format: 'preserve'`**, stripping the `.html` off
+posts and the trailing slash off pages — advertising URLs that 404. A `serialize`
+hook in `astro.config.mjs` repairs both and `tests/urls.test.ts` checks the result.
+Math plugins go through `processor: unified({...})` from `@astrojs/markdown-remark`;
+`markdown.remarkPlugins` is deprecated in Astro 6. nbconvert left four `$$…$$` on
+single lines in grades-analysis, which remark-math renders inline, not display — the
+delimiters were rewrapped (no math or prose changed). Pagefind (Component UI) indexes
+after `astro build`, so **search is empty under `astro dev`**; use `npm run preview`.

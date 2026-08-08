@@ -43,14 +43,16 @@ The frozen URLs come in two shapes: posts are `/2022/03/19/slug.html`, pages are
 Costs: every page route is a directory with an `index.astro` inside, and post
 URLs in `astro dev` lack the `.html` the built files carry.
 
-## Sitemap hand-rolled, not `@astrojs/sitemap`
+## `/sitemap.xml` traded for `/sitemap-index.xml`
 
-The integration publishes a `sitemap-index.xml` pointing at numbered chunks; the
-live site has a single `/sitemap.xml`, which `robots.txt` names. Taking the
-integration would have moved a frozen URL to buy pagination a nine-URL site
-cannot use. `src/pages/sitemap.xml.ts` is ~30 lines.
+The one published URL this migration deliberately gave up. `@astrojs/sitemap`
+publishes `sitemap-index.xml` and cannot be made to serve a single
+`sitemap.xml`; keeping the old path meant a hand-rolled endpoint with a
+hand-maintained page list. The owner chose discovery over the path: nothing
+links to a sitemap, so the only exposure is re-submitting it in Search Console.
 
-Costs: the page list is written by hand, so a new page needs a line there.
+Costs: `robots.txt` points at the index, and `tests/expected-urls.json` carries
+one entry that is not from the deployment. Every other frozen URL still is.
 
 ## URLs frozen
 

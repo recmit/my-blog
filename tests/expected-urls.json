@@ -10,6 +10,6 @@
   "/search/",
   "/404.html",
   "/feed.xml",
-  "/sitemap.xml",
+  "/sitemap-index.xml",
   "/robots.txt"
 ]

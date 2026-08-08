@@ -15,7 +15,7 @@ arrives with the migration ([`migration-plan.md`](migration-plan.md)).
 
 | Path | What |
 |---|---|
-| `src/pages/` | One file per route. Pages are `<name>/index.astro` (they publish as `/<name>/`); `[...slug].astro` generates the dated `.html` post URLs; `feed.xml.ts` and `sitemap.xml.ts` are endpoints rather than pages |
+| `src/pages/` | One file per route. Pages are `<name>/index.astro` (they publish as `/<name>/`); `[...slug].astro` generates the dated `.html` post URLs; `feed.xml.ts` is an endpoint rather than a page (the sitemap comes from `@astrojs/sitemap`) |
 | `src/layouts/` | Page shells — `<head>`, nav, footer |
 | `src/components/` | Reusable pieces. Build-time unless marked `client:*` |
 | `src/lib/` | Non-rendering helpers. `posts.ts` owns the date→URL mapping, so the published paths are derived in exactly one place |
