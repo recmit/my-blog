@@ -1,6 +1,6 @@
 # Migration plan: fastpages/Jekyll → Astro
 
-**Status:** Phase 1 complete. Next: Phase 2.
+**Status:** Phase 2 complete. Next: Phase 3.
 **Audience:** the implementer (human or agent). Start with `/migrate`.
 
 The Status line above is the handoff signal — keep it in the form
@@ -166,9 +166,16 @@ syntax error.
 This is where surprises live. If something is going to derail the migration, it
 will be here, so it happens before any layout work.
 
-- `git mv _notebooks notebooks`.
+- `git mv _notebooks notebooks`. Losing the leading underscore makes Jekyll
+  *publish* the directory, so add `notebooks` (and `scripts`) to `exclude:` in
+  `_config.yml`, and repoint `_action_files/nb2post.py`, `tsconfig.json` and
+  `.gitignore` at the new name.
 - Write `scripts/convert-notebooks.sh`: `jupyter nbconvert --to markdown`, one
   output directory per post, images extracted to real files alongside the `.md`.
+- Handle the fastpages cell directives, which nbconvert knows nothing about:
+  `#hide` drops the cell entirely (prose cells too, not only code), and
+  `#collapse-hide` / `#collapse-output` fold the input or the output into a
+  `<details>`. The deployed pages are the check on all three.
 - Take front matter (`title`, `description`, date) from the **existing**
   `_posts/*.md` files — it is already correct there. Do not re-derive it from
   the notebooks.
@@ -362,6 +369,22 @@ deployed output, so a Phase 3 failure means the routes are wrong.
 and otherwise Jekyll publishes the 450 KB baseline live on merge. Phase 1's
 step is edited to match.
 `.gitignore` has a bare `*.xml` that would swallow XML committed outside `dist/`.
+
+<!-- Phase 2: -->
+
+**Phase 2** — nbconvert handles the notebooks without drama; the work was the
+fastpages directives, now documented in the step above. Dropping `#hide` cells
+also removes the only ANSI escapes (pip output), so nothing needed unmangling.
+Fidelity was checked by asserting every retained cell's source appears verbatim
+in the output — do that, not a diff against the deployed HTML, whose KaTeX and
+Liquid make text comparison useless.
+Math is intact as LaTeX but **unrendered until Phase 4** adds `remark-math`;
+until then remark reads `_` in `$y_{i,j}$` as emphasis. Installing the plugin
+fixes it — do not "escape" the math instead.
+Images are `![](./output_<cell>_<n>.png)`, alt text deliberately empty:
+nbconvert's `![png]` names the file format, not the figure. Phase 5 owns real
+alt text. `notebooks/{README.md,ghtop_images/,my_icons/}` are unreferenced
+fastpages samples, moved by the rename — delete in Phase 7.
 
 <!-- Phase 1: -->
 

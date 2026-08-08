@@ -25,6 +25,11 @@ dependency tree out of the build permanently.
 Costs: republishing a notebook means re-running the conversion script by hand.
 Acceptable, because these posts are archives.
 
+The conversion reproduces what fastpages published rather than the raw notebook:
+`#hide` cells are dropped and `#collapse-*` cells become `<details>`, so the
+posts read as they always have. That keeps the archives honest, at the price of
+a converter that has to know a dead tool's directives.
+
 ## GitHub Pages, for now
 
 Static hosting is sufficient and the domain already points there. Astro can move

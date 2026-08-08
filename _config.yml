@@ -68,6 +68,10 @@ exclude:
   - README.md
   - settings.ini
   - tests
+  # `notebooks` lost its leading underscore in Phase 2, so Jekyll would
+  # otherwise publish 1.8 MB of .ipynb to the live site.
+  - notebooks
+  - scripts
   - src
   - public
   - node_modules

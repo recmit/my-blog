@@ -1,0 +1,35 @@
+{#
+  Markdown export that preserves the two fastpages collapse directives.
+
+  The live site renders `#collapse-hide` as a collapsed code block and
+  `#collapse-output` as a collapsed output block (both `<details>` in the
+  deployed HTML). `convert-notebooks.py` strips the directive comment and
+  records the intent in `cell.metadata.collapse`; this template turns that
+  back into `<details>`.
+
+  Blank lines around the fence matter: they end the raw-HTML block so the
+  code inside is still parsed as Markdown and keeps its highlighting.
+#}
+{% extends 'markdown/index.md.j2' %}
+
+{% block input_group %}
+{%- if cell.metadata.get('collapse') == 'input' %}
+<details>
+<summary>Show code</summary>
+{{ super() }}
+</details>
+{% else %}
+{{- super() -}}
+{%- endif %}
+{% endblock input_group %}
+
+{% block output_group %}
+{%- if cell.metadata.get('collapse') == 'output' %}
+<details>
+<summary>Show output</summary>
+{{ super() }}
+</details>
+{% else %}
+{{- super() -}}
+{%- endif %}
+{% endblock output_group %}
