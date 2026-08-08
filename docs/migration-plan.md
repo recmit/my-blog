@@ -365,12 +365,13 @@ step is edited to match.
 
 <!-- Phase 1: -->
 
-**Phase 1** — `npm create astro@latest` couldn't run: GitHub template fetch
-is 403 through this sandbox's proxy. Scaffolded by hand instead: `astro@6.4.8`,
-`astro.config.mjs`, `tsconfig.json`, `content.config.ts`, a placeholder
-`src/pages/index.astro`. `content.config.ts` imports `z` from `astro/zod`,
-not `astro:content` — deprecated in Astro 6, removed in 7. `tsconfig.json`
-excludes the Jekyll dirs, else `astro check` typechecks `assets/js/search.js`
-(Liquid). Could not run the CI Jekyll build — no docker daemon here;
-`_config.yml`/`.gitignore` changes are additive-only, unverified in real CI.
-`npm test` runs vitest; parity test fails on missing routes, as expected.
+**Phase 1** — `npm create astro@latest` can't fetch templates here: egress policy
+403s `codeload.github.com` and `api.github.com`, which it reports as "Template
+minimal could not be found". **`raw.githubusercontent.com` works** — use it to
+read upstream files. The scaffold was hand-written, then diffed against
+`examples/minimal` at tag `astro@6.4.8`; it matches but for what this repo
+needs (`site`/`output` set, and `tsconfig` excludes the Jekyll dirs, else
+`astro check` typechecks `assets/js/search.js`, which is Liquid).
+`content.config.ts` imports `z` from `astro/zod`; the `astro:content`
+re-export goes away in Astro 7. No docker daemon here, so the CI Jekyll
+build is unverified — the `_config.yml`/`.gitignore` edits are additive-only.
