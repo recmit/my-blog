@@ -1,6 +1,6 @@
 # Migration plan: fastpages/Jekyll → Astro
 
-**Status:** Phase 1 complete. Next: Phase 2.
+**Status:** Phase 2 complete. Next: Phase 3.
 **Audience:** the implementer (human or agent). Start with `/migrate`.
 
 The Status line above is the handoff signal — keep it in the form
@@ -166,9 +166,16 @@ syntax error.
 This is where surprises live. If something is going to derail the migration, it
 will be here, so it happens before any layout work.
 
-- `git mv _notebooks notebooks`.
+- `git mv _notebooks notebooks`. Losing the leading underscore makes Jekyll
+  *publish* the directory, so add `notebooks` (and `scripts`) to `exclude:` in
+  `_config.yml`, and repoint `_action_files/nb2post.py`, `tsconfig.json` and
+  `.gitignore` at the new name.
 - Write `scripts/convert-notebooks.sh`: `jupyter nbconvert --to markdown`, one
   output directory per post, images extracted to real files alongside the `.md`.
+- Handle the fastpages cell directives, which nbconvert knows nothing about:
+  `#hide` drops the cell entirely (prose cells too, not only code), and
+  `#collapse-hide` / `#collapse-output` fold the input or the output into a
+  `<details>`. The deployed pages are the check on all three.
 - Take front matter (`title`, `description`, date) from the **existing**
   `_posts/*.md` files — it is already correct there. Do not re-derive it from
   the notebooks.
@@ -375,3 +382,16 @@ excludes the Jekyll dirs, else `astro check` typechecks `assets/js/search.js`,
 which is Liquid). `content.config.ts` imports `z` from `astro/zod`; the
 `astro:content` re-export goes away in Astro 7. No docker daemon and no runnable
 Ruby here, so CI on the PR is the only proof the Jekyll build still works.
+
+<!-- Phase 2: -->
+
+**Phase 2** — nbconvert was uneventful; the fastpages directives were the work,
+and the step above now documents them. Dropping `#hide` cells also removed the
+only ANSI escapes, so nothing needed unmangling. Check fidelity by asserting
+every retained cell's source appears verbatim in the output — not by diffing the
+deployed HTML, whose KaTeX and Liquid make text comparison useless.
+Math is intact as LaTeX but **unrendered until Phase 4** adds `remark-math`;
+until then remark reads `_` in `$y_{i,j}$` as emphasis — install the plugin,
+do not "escape" the math. Images are `![](./output_<cell>_<n>.png)` with empty
+alt text (nbconvert's `![png]` names the format, not the figure); Phase 5 owns
+real alt text. `notebooks/{README.md,ghtop_images/,my_icons/}` go in Phase 7.
