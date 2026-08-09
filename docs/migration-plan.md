@@ -1,6 +1,6 @@
 # Migration plan: fastpages/Jekyll → Astro
 
-**Status:** Phase 3 complete. Next: Phase 4.
+**Status:** Phase 4 complete. Next: Phase 5.
 **Audience:** the implementer (human or agent). Start with `/migrate`.
 
 The Status line above is the handoff signal — keep it in the form
@@ -212,6 +212,10 @@ your routes are wrong.
 ### Phase 4 — Feature parity
 
 - `feed.xml` (`@astrojs/rss`), `sitemap.xml`, `robots.txt`, `CNAME` in `public/`.
+  Do not reach for `@astrojs/sitemap`: it publishes `sitemap-index.xml` rather
+  than the frozen `/sitemap.xml`, and it derives URLs from the config instead of
+  the built files, so under `build.format: 'preserve'` every URL it emits is
+  wrong. A ~40-line endpoint does it correctly.
 - SEO meta + Open Graph (replaces `jekyll-seo-tag`).
 - Pagefind search on `/search/`.
 - Math CSS.
@@ -263,6 +267,8 @@ Testing, proportionate to a five-post blog — these four, no more:
    you and silently breaking every inbound link.
 3. **Smoke tests** (Playwright) — each page returns 200, has an `<h1>`, and logs
    no console errors. Chromium is already available; do not run `playwright install`.
+   GA4 and the contact page's reCAPTCHA load from CDNs, so the console-error
+   assertion needs egress or an allowance for those two hosts.
 4. **Internal link check** over `dist/` — catches bad paths from Phase 2.
 
 All four run in CI on every push to the branch.
@@ -416,3 +422,16 @@ default, so Phase 5's `<Image>` item is about alt text and figures, not formats.
 Left dangling on purpose: the footer's `/feed.xml` link, and `/search/`, which
 has the input markup but no Pagefind. Both are Phase 4.
 `docs/decisions.md` is now over its Phase 6 budget — cut there.
+
+<!-- Phase 4: -->
+
+**Phase 4** — All 13 parity paths green. **`@astrojs/sitemap` was tried and
+reverted**: it derives URLs from the config, not the built files, so under
+`build.format: 'preserve'` it emits posts without `.html` and pages without their
+slash — every URL a 404. `src/pages/sitemap.xml.ts` derives both shapes instead,
+finding pages with `import.meta.glob`, and `tests/urls.test.ts` checks the result.
+Math plugins go through `processor: unified({...})` from `@astrojs/markdown-remark`;
+`markdown.remarkPlugins` is deprecated in Astro 6. nbconvert left four `$$…$$` on
+single lines in grades-analysis, which remark-math renders inline, not display — the
+delimiters were rewrapped (no math or prose changed). Pagefind (Component UI) indexes
+after `astro build`, so **search is empty under `astro dev`**; use `npm run preview`.
