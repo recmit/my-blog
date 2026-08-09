@@ -1,0 +1,438 @@
+/*
+ * The whole stylesheet. It replaces Primer (CDN) and FontAwesome (CDN), which
+ * between them shipped ~200 KB to render a header, a post and a form.
+ *
+ * Dark mode is Phase 5 — the colours are already custom properties so that it
+ * is a second block of values rather than a rewrite.
+ */
+
+:root {
+  --measure: 42rem;
+  --page-max: 60rem;
+
+  --font-body:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+
+  --text: #24292f;
+  --text-muted: #57606a;
+  --bg: #ffffff;
+  --bg-subtle: #f6f8fa;
+  --border: #d0d7de;
+  --link: #0969da;
+  /* Search-hit highlight; the only place a background tint carries meaning. */
+  --accent-mark: #fff3c4;
+
+  --radius: 6px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 1.0625rem;
+  line-height: 1.7;
+  color: var(--text);
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+a {
+  color: var(--link);
+  text-decoration: none;
+}
+
+a:hover,
+a:focus {
+  text-decoration: underline;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  line-height: 1.25;
+  margin: 2em 0 0.6em;
+  font-weight: 600;
+}
+
+h1 {
+  font-size: 2rem;
+  margin-top: 0;
+}
+
+h2 {
+  font-size: 1.5rem;
+}
+
+h3 {
+  font-size: 1.25rem;
+}
+
+p,
+ul,
+ol {
+  margin: 0 0 1.15em;
+}
+
+hr {
+  border: 0;
+  border-top: 1px solid var(--border);
+  margin: 2.5em 0;
+}
+
+blockquote {
+  margin: 0 0 1.15em;
+  padding-left: 1em;
+  border-left: 4px solid var(--border);
+  color: var(--text-muted);
+}
+
+/* Layout ------------------------------------------------------------------ */
+
+.site-header,
+.site-footer,
+.page-content {
+  width: 100%;
+  max-width: var(--page-max);
+  margin-inline: auto;
+  padding-inline: 1.25rem;
+}
+
+.site-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem 1.5rem;
+  padding-block: 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.site-title {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.site-nav {
+  display: flex;
+  gap: 1.25rem;
+}
+
+.page-content {
+  flex: 1;
+  padding-block: 2.5rem 4rem;
+}
+
+.site-footer {
+  border-top: 1px solid var(--border);
+  padding-block: 1.5rem 2.5rem;
+  color: var(--text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem 1.5rem;
+}
+
+.site-footer p {
+  margin: 0;
+}
+
+.social-media-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  gap: 1.25rem;
+}
+
+/* Home -------------------------------------------------------------------- */
+
+.post-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.post-list > li + li {
+  margin-top: 2.5rem;
+  padding-top: 2.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.post-list h2 {
+  margin: 0.15em 0 0.35em;
+  font-size: 1.4rem;
+}
+
+.post-meta,
+.post-description {
+  color: var(--text-muted);
+}
+
+.post-meta {
+  font-size: 0.9rem;
+}
+
+.post-list .post-description {
+  max-width: var(--measure);
+  margin: 0;
+}
+
+/* Posts and pages --------------------------------------------------------- */
+
+.post-header {
+  margin-bottom: 2.5rem;
+}
+
+.post-title {
+  margin-bottom: 0.35em;
+}
+
+.post-header .page-description {
+  max-width: var(--measure);
+  color: var(--text-muted);
+}
+
+.page-content-body {
+  max-width: var(--measure);
+}
+
+/*
+ * Posts hold two kinds of content at once. Prose wants a measure it is
+ * comfortable to read; notebook output — code, dataframes, plots — is wider
+ * than that by nature and was being clipped to the prose width.
+ *
+ * So the column is the full page and the *prose* is what carries the measure.
+ * Wide children keep the whole column and scroll inside themselves.
+ */
+.post-content > * {
+  max-width: var(--measure);
+}
+
+.post-content > pre,
+.post-content > table,
+.post-content > details,
+.post-content > figure,
+.post-content > div,
+.post-content > .katex-display {
+  max-width: 100%;
+}
+
+/* Code -------------------------------------------------------------------- */
+
+code {
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+}
+
+:not(pre) > code {
+  background: var(--bg-subtle);
+  border-radius: var(--radius);
+  padding: 0.15em 0.35em;
+}
+
+pre {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  overflow-x: auto;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin: 0 0 1.15em;
+}
+
+/* nbconvert output blocks carry no language and no Shiki theme background. */
+pre:not([class]) {
+  background: var(--bg-subtle);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Tables ------------------------------------------------------------------ */
+
+table {
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  margin: 0 0 1.15em;
+  /* pandas dataframes are often wider than the measure; scroll rather than
+     overflow the page. `block` is what makes overflow-x apply to a table. */
+  display: block;
+  width: max-content;
+  overflow-x: auto;
+}
+
+th,
+td {
+  border: 1px solid var(--border);
+  padding: 0.4em 0.75em;
+  text-align: left;
+}
+
+thead th {
+  background: var(--bg-subtle);
+}
+
+/* Figures ----------------------------------------------------------------- */
+
+figure {
+  margin: 2rem 0;
+}
+
+figcaption {
+  margin-top: 0.6rem;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+/* Collapsed cells (fastpages `#collapse-hide` / `#collapse-output`) -------- */
+
+details {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.6rem 1rem;
+  margin: 0 0 1.15em;
+  background: var(--bg-subtle);
+}
+
+details > summary {
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+details[open] > summary {
+  margin-bottom: 0.8rem;
+}
+
+details pre {
+  background: var(--bg);
+}
+
+/* Math -------------------------------------------------------------------- */
+
+/* KaTeX ships its own stylesheet (imported by the layout, so the fonts are
+   self-hosted and fingerprinted). These two rules are the site's part: display
+   math should scroll rather than widen the page. */
+.katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-block: 0.25rem;
+}
+
+/* KaTeX positions sub- and superscripts with its own boxes; an inherited
+   line-height shifts them off their baselines. */
+.katex {
+  font-size: 1.05em;
+  line-height: normal;
+}
+
+/* Forms (the contact page — replaces Primer's `.form-control` / `.btn`) ---- */
+
+.form-group {
+  margin-bottom: 1.25rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.form-control {
+  display: block;
+  width: 100%;
+  font: inherit;
+  font-size: 1rem;
+  padding: 0.5rem 0.7rem;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+textarea.form-control {
+  min-height: 9rem;
+  resize: vertical;
+}
+
+.form-control:focus,
+.btn:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: 2px;
+}
+
+.btn {
+  font: inherit;
+  font-weight: 600;
+  padding: 0.5rem 1.1rem;
+  border-radius: var(--radius);
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+
+.btn-primary {
+  background: var(--link);
+  color: #fff;
+}
+
+.btn-primary:hover {
+  filter: brightness(0.92);
+}
+
+/* Search ------------------------------------------------------------------ */
+
+.search {
+  max-width: var(--measure);
+}
+
+/*
+ * Pagefind's Component UI theming hooks (`--pf-*`), pointed at this site's
+ * tokens so search does not arrive in its own palette. The components set
+ * their own high specificity deliberately, so theme them through these
+ * variables rather than by writing competing selectors.
+ */
+.search {
+  --pf-font: var(--font-body);
+  --pf-background: var(--bg);
+  --pf-border: var(--border);
+  --pf-border-focus: var(--link);
+  --pf-border-radius: var(--radius);
+  --pf-outline-focus: var(--link);
+  --pf-hover: var(--bg-subtle);
+  --pf-mark: var(--accent-mark);
+}
+
+/* 404 --------------------------------------------------------------------- */
+
+.not-found {
+  text-align: center;
+  padding-block: 3rem;
+}
+
+.not-found h1 {
+  font-size: 4rem;
+  margin-bottom: 0.2em;
+}

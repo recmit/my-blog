@@ -26,6 +26,9 @@ Why they're that way: [`docs/decisions.md`](docs/decisions.md).
 
 - Posts are Markdown in `src/content/posts/<slug>/`, images alongside them.
   Use `.mdx` only when a post genuinely needs a component.
+- A page is `src/pages/<name>/index.astro`, never `<name>.astro` — that is what
+  publishes it at `/<name>/`, and it is how the sitemap finds it. Nothing lists
+  pages by hand; both follow from the file's location.
 - Front matter is validated by `src/content.config.ts`. Add a field there before
   using it anywhere.
 - Plain CSS with custom properties, in `src/styles/`. No CSS framework.

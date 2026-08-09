@@ -1,23 +1,28 @@
 ---
 /**
- * The search page. The route and its markup exist here; Pagefind is wired up
- * in Phase 4, which is when the input starts returning results.
+ * Search, powered by Pagefind — the replacement for the site's lunr index.
+ *
+ * This uses Pagefind's Component UI: a set of custom elements that share an
+ * `instance` name. Composed inline here rather than as the modal the same
+ * bundle also offers, because this is a dedicated search page.
+ *
+ * Pagefind indexes `dist/` *after* the Astro build (see the `build` script in
+ * package.json), so its assets live at `/pagefind/`, outside anything Astro
+ * knows about. That is why these are plain tags rather than imports: there is
+ * nothing on disk for Vite to resolve at build time.
+ *
+ * Consequence: search returns nothing under `astro dev`, because no index has
+ * been written yet. Check it with `npm run build && npm run preview`.
  */
 import PageLayout from '../../layouts/PageLayout.astro';
 ---
 
-<PageLayout title="Search">
+<PageLayout title="Search" indexed={false}>
+  <link rel="stylesheet" href="/pagefind/pagefind-component-ui.css" />
   <div class="search">
-    <div class="search-input-wrap">
-      <input
-        type="text"
-        class="search-input"
-        tabindex="0"
-        placeholder="Search David Recio's Blog"
-        aria-label="Search David Recio's Blog"
-        autocomplete="off"
-      />
-    </div>
-    <div class="search-results-wrap"></div>
+    <pagefind-input instance="site" placeholder="Search David Recio's Blog"></pagefind-input>
+    <pagefind-summary instance="site"></pagefind-summary>
+    <pagefind-results instance="site" show-images="false"></pagefind-results>
   </div>
+  <script is:inline type="module" src="/pagefind/pagefind-component-ui.js"></script>
 </PageLayout>
