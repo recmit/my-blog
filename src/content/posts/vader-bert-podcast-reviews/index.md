@@ -4,6 +4,27 @@ description: "In a previous post we trained a recommender on a million ratings f
 date: 2022-10-21
 notebook: "notebooks/2022-10-21-vader-bert-podcast-reviews.ipynb"
 archived: true
+tags: ["NLP", "sentiment analysis", "VADER", "BERT", "podcasts"]
+tldr:
+  - "Podcast reviews carry preference signal the star rating misses — a
+    one-star review is sometimes a fan complaining about the audio. This post
+    asks how much of that two off-the-shelf sentiment methods recover: VADER,
+    and a distilBERT already fine-tuned on SST2."
+  - "Scored against the ratings on a 100,000-review sample balanced at 20,000
+    per star, VADER manages 0.568 three-class accuracy, with recall of just
+    0.20 on the neutral (three-star) class. Collapsed to binary at the single
+    best possible threshold it reaches 0.718 — and that threshold is fitted on
+    the same data, so treat it as an optimistic baseline."
+  - "The two methods disagree most sharply on three-star reviews: VADER scores
+    them overwhelmingly positive, distilBERT calls them mostly negative.
+    Reading the reviews, the post sides with distilBERT and puts VADER's
+    behaviour down to a positivity bias."
+  - "Where they conflict, distilBERT is usually the one that is right. It reads
+    \"used to be a great comedy podcast, until…\" as negative, where VADER's
+    bag of words counts *great*, *wisdom* and *talent* and scores it 0.95."
+  - "It is not better at everything: distilBERT's probabilities pile up at 0
+    and 1, making it a confident binary classifier rather than a usable
+    continuous measure of sentiment. VADER is the better instrument for that."
 ---
 
 In another notebook we trained a recommender using collaborative filtering on a million ratings from Apple Podcasts. However, we didn't use the **content of the reviews**, which are an additional source of signal of user preference. Some of that signal can be extracted using **sentiment analysis** and could then be used to train a recommender system.
