@@ -4,6 +4,25 @@ description: "In this post we will use the Hugging Face API and PyTorch to fine-
 date: 2022-10-21
 notebook: "notebooks/2022-10-21-bert-fine-tune-podcast-reviews.ipynb"
 archived: true
+tags: ["NLP", "BERT", "transformers", "fine-tuning", "Ray Tune"]
+tldr:
+  - "Fine-tunes base distilBERT on 80,000 podcast reviews to predict the star
+    rating from the review's title and body, with Ray Tune searching the
+    hyperparameters. Collapsing the five predicted ratings to two gives a
+    sentiment classifier for free."
+  - "On a 5,000-review test set balanced across ratings, that model reaches
+    0.883 sentiment accuracy against 0.815 for the off-the-shelf distilBERT
+    fine-tuned on SST2 — a real gain for roughly two epochs of training."
+  - "Predicting the star rating itself, all five classes, is much harder:
+    0.589. The stars are noisy labels, and neighbouring ones especially so."
+  - "Fine-tuning buys domain knowledge, not just fit. The model picks up
+    conventions specific to podcast reviews — reviews of horror podcasts use
+    language that reads as negative in general English while plainly approving
+    of the show."
+  - "Confidence is not accuracy. Trained on to 40,000 steps (4 epochs) the
+    output probabilities pile up at 0 and 1 while the evaluation loss climbs
+    and accuracy falls below the 17,000-step checkpoint. The post reads that
+    sharpening as a symptom of overfitting rather than a sign of learning."
 ---
 
 In a previous notebook we compared the performance of two methods to classify podcast reviews by sentiment. The VADER polarity score and a distilBERT transformer fine-tuned on the SST2 dataset, which consists of sentences from movie reviews.
