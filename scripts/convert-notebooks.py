@@ -20,6 +20,7 @@ import json
 import re
 import shutil
 import sys
+import textwrap
 from pathlib import Path
 
 import nbformat
@@ -46,6 +47,19 @@ ANSI = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]")
 # pandas emits `<style scoped>` with every `to_html`. `scoped` was dropped from
 # the HTML spec, so these would apply site-wide rather than to their table.
 PANDAS_STYLE = re.compile(r"^<style scoped>.*?^</style>\n", re.DOTALL | re.MULTILINE)
+# The two 2022-10-21 notebooks were run in Google Colab, which wraps every
+# dataframe in a "convert to interactive table" widget: a container div, a
+# button, an unscoped `<style>` and a `<script>` calling `google.colab`. None of
+# it works outside Colab. Keep the table, drop the widget.
+COLAB_TABLE = re.compile(
+    r"^[ ]*<div id=\"df-[0-9a-f-]+\">\n"
+    r"[ ]*<div class=\"colab-df-container\">\n"
+    r"(?P<table>[ ]*<div>\n<table class=\"dataframe\">.*?</table>\n</div>)\n"
+    r".*?^[ ]*</script>\n"
+    r"[ ]*</div>\n"
+    r"[ ]*</div>",
+    re.DOTALL | re.MULTILINE,
+)
 IMAGE_REF = re.compile(r"!\[[^\]]*\]\((?P<path>[^)\s]+_files/[^)\s]+)\)")
 
 
@@ -170,6 +184,10 @@ def rewrite_images(body: str, resources: dict, post_dir: Path) -> str:
 def clean(body: str) -> str:
     body = ANSI.sub("", body)
     body = PANDAS_STYLE.sub("", body)
+    body = COLAB_TABLE.sub(
+        lambda m: textwrap.dedent(m.group("table").replace("      <div>", "<div>", 1)),
+        body,
+    )
     # `border="1"` is presentation, and it overrides the stylesheet.
     body = body.replace('<table border="1" class="dataframe">', '<table class="dataframe">')
     body = re.sub(r"\n{3,}", "\n\n", body)

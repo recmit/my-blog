@@ -442,12 +442,12 @@ after `astro build`, so **search is empty under `astro dev`**; use `npm run prev
 <!-- Phase 5: -->
 
 **Phase 5** — This phase had no gate; one is added above, matching the others.
-Colab leftovers survive in the two 2022-10-21 posts (a **Phase 2** miss): the
-`<style>` blocks are live CSS, and the `<script>` blocks are indented, so they
-render as a visible plaintext code block instead of executing. That means no
-console error — **the Phase 6 smoke test will not catch them.**
-Astro's `<Image>` was not needed: markdown images already build to sized, lazy
-webp, so the work was the 31 alt texts. Tags are labels, not links — no tag
-pages, so no new URLs. Colours now live only in `:root` and one
-`prefers-color-scheme` block; a literal hex anywhere else breaks one scheme.
+Colab wraps every dataframe in a widget (container div, button, unscoped
+`<style>`, a `<script>` calling `google.colab`) and it survived Phase 2 into the
+two 2022-10-21 posts. Fixed here at the owner's request: `COLAB_TABLE` in
+`scripts/convert-notebooks.py` keeps the table and drops the widget, and the
+committed posts were rewritten with that same regex.
+`<Image>` was not needed — markdown images already build to sized, lazy webp, so
+the work was the 31 alt texts. Tags are labels, not links: no tag pages, no new
+URLs. Colours live only in `:root` and one `prefers-color-scheme` block.
 `docs/decisions.md` is 79 lines against its 40-line budget — cut in Phase 6.

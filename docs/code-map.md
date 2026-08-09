@@ -28,7 +28,7 @@ arrives with the migration ([`migration-plan.md`](migration-plan.md)).
 |---|---|
 | `astro.config.mjs` | Integrations, Markdown pipeline, URL format |
 | `scripts/convert-notebooks.sh` | One-time `.ipynb` → Markdown. **Not run in CI.** It ran once; its output is committed. Installs its two dependencies, then runs the `.py` |
-| `scripts/convert-notebooks.py` | The conversion itself: drops fastpages `#hide` cells, folds `#collapse-*` into `<details>`, takes front matter from `_posts/` |
+| `scripts/convert-notebooks.py` | The conversion itself: drops fastpages `#hide` cells, folds `#collapse-*` into `<details>`, strips Colab's dataframe widgets, takes front matter from `_posts/` |
 | `scripts/nbtemplate/` | nbconvert template that emits those `<details>` wrappers |
 | `tests/expected-urls.json` | The published URL surface, taken from the live deployment |
 | `tests/` | URL parity, Playwright smoke tests, internal link check |
