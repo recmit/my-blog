@@ -970,7 +970,7 @@ ax1.hist(survival_rates);
 </details>
 
     
-![](./output_73_0.png)
+![Two histograms over random train-test splits: the fraction of passenger groups divided between train and test, and the survival rate in the test set.](./output_73_0.png)
     
 
 The Kaggle test set seems to be very typical, at least as far as the survival rate and passenger groups are concerned. In fact, both values (0.61 and 0.38) are close to the mean for both distributions (almost suspiciously close). This suggests that the test set was either drawn at random or specifically chosen to have a typical survival rate.

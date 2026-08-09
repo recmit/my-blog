@@ -1939,7 +1939,7 @@ evaluate_and_plot(
      'recall': array([0.66078431, 0.44008056, 0.46909828, 0.52818991, 0.84428716])}
 
     
-![](./output_47_2.png)
+![A five-by-five grid of histograms of predicted rating probabilities at the 17,000-step checkpoint, one row per true star rating.](./output_47_2.png)
     
 
 We see both in the recall and in the histograms that the model has a particularly hard time with 2 and 3 star ratings.
@@ -1970,7 +1970,7 @@ evaluate_and_plot(
     {'accuracy': 0.8828, 'recall': array([0.89533333, 0.864     ])}
 
     
-![](./output_50_2.png)
+![Two histograms of the predicted probability that a review is positive at the 17,000-step checkpoint, split by true sentiment.](./output_50_2.png)
     
 
 Now we evaluate the model which was fine-tuned on SST2 and is available on Hugging Face.
@@ -1989,7 +1989,7 @@ evaluate_and_plot(
     {'accuracy': 0.8148, 'recall': array([0.81466667, 0.815     ])}
 
     
-![](./output_52_2.png)
+![Two histograms of the predicted probability that a review is positive for the distilBERT fine-tuned on SST2, split by true sentiment.](./output_52_2.png)
     
 
 The model fine-tuned on SST has a lower accuracy $0.815$ and also lower recall scores of $0.815$ and $0.815$. It is remarkable how similar the recall scores of positive and negative ratings are for the distilBERT model fine-tuned on SST. After rounding they are actually identical.
@@ -2842,7 +2842,7 @@ evaluate_and_plot(
      'recall': array([0.60588235, 0.50151057, 0.51874367, 0.36597428, 0.84226491])}
 
     
-![](./output_82_2.png)
+![A five-by-five grid of histograms of predicted rating probabilities at the 6,000-step checkpoint, one row per true star rating. The distributions are noticeably more spread out than at 17,000 steps.](./output_82_2.png)
     
 
 ```python
@@ -2859,7 +2859,7 @@ evaluate_and_plot(
      'recall': array([0.59117647, 0.48539778, 0.44883485, 0.53610287, 0.79271992])}
 
     
-![](./output_83_2.png)
+![A five-by-five grid of histograms of predicted rating probabilities at the 40,000-step checkpoint, one row per true star rating. The distributions are far more concentrated at zero and one.](./output_83_2.png)
     
 
 ```python
@@ -2876,7 +2876,7 @@ evaluate_and_plot(
     {'accuracy': 0.8744, 'recall': array([0.93233333, 0.7875    ])}
 
     
-![](./output_84_2.png)
+![Two histograms of the predicted probability that a review is positive at the 6,000-step checkpoint, split by true sentiment.](./output_84_2.png)
     
 
 ```python
@@ -2893,4 +2893,4 @@ evaluate_and_plot(
     {'accuracy': 0.8762, 'recall': array([0.895, 0.848])}
 
     
-![](./output_85_2.png)
+![Two histograms of the predicted probability that a review is positive at the 40,000-step checkpoint, split by true sentiment.](./output_85_2.png)

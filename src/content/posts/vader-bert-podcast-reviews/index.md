@@ -306,7 +306,7 @@ plot_histograms_by_sentiment(reviews_raw, 'polarity score')
 ```
 
     
-![](./output_25_0.png)
+![Three histograms of the VADER polarity score, for reviews rated one or two stars, three stars, and four or five stars.](./output_25_0.png)
     
 
 The histograms clearly show a positivity bias. We see that even for negative ratings the mean sentiment score is just over 0:
@@ -767,7 +767,7 @@ plt.xlabel('Token count for review');
 ```
 
     
-![](./output_60_0.png)
+![Histogram of the token count per review, with most reviews well under 256 tokens.](./output_60_0.png)
     
 
 ```python
@@ -828,7 +828,7 @@ plot_histograms_by_sentiment(reviews, 'BERT probs')
 ```
 
     
-![](./output_68_0.png)
+![Two histograms of the probability distilBERT assigns to a review being positive, split by true sentiment. Both pile up sharply at zero and one.](./output_68_0.png)
     
 
 Most times when VADER and distilBERT disagree, the latter is right. This is not surprising because distilBERT is a much more complicated and computation intensive technique.

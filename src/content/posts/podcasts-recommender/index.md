@@ -666,7 +666,7 @@ ax1.bar(ratings['rating'].value_counts().index, ratings['rating'].value_counts()
 ```
 
     
-![](./output_24_0.png)
+![Two bar charts of star-rating frequency, before and after curating the dataset. Five-star ratings dominate in both.](./output_24_0.png)
     
 
 ### Why Implicit?
@@ -851,7 +851,7 @@ for i, x, y in zip(podcast_names[top_podcasts], X, Y):
 ```
 
     
-![](./output_43_0.png)
+![Scatter plot of the twenty-five most reviewed podcasts, projected onto the first two principal components of the latent space and labelled by name.](./output_43_0.png)
     
 
 We must take the visualization with a grain of salt because obviously information is lost when we project a 50-dimensional space down to two dimensions. Specifically, podcasts that appear close in the projection might not be close at all in the full space.
