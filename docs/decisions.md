@@ -64,3 +64,16 @@ serves files with no server-side redirects — so a changed path is a hard 404,
 not a redirect. Keeping the paths costs one build setting; replacing them would
 cost a stub page per old URL. It is pinned in `tests/expected-urls.json` and
 enforced by a test, rather than left to convention and good intentions.
+
+## Dark mode by `prefers-color-scheme`, and code in two themes
+
+No toggle: a toggle needs client-side JavaScript and a stored preference, and
+the OS already holds that preference. So the palette is one `@media` block of
+custom-property values and no extra rules.
+
+Shiki emits both `github-light` and `github-dark` per token (`defaultColor:
+false`) so code follows the scheme too. That also changed light mode, where
+code blocks had been dark on a white page.
+
+Costs: colours may only be defined in `:root` and that one media block —
+anything hard-coded elsewhere breaks in one scheme.

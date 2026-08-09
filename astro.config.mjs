@@ -9,6 +9,15 @@ export default defineConfig({
   site: 'https://david-recio.com',
   output: 'static',
   markdown: {
+    // Two Shiki themes rather than one. With `defaultColor: false` every token
+    // carries both colours as `--shiki-light` / `--shiki-dark` custom
+    // properties and the stylesheet picks one, so code follows
+    // `prefers-color-scheme` like the rest of the page. A single theme would
+    // leave code blocks the one element that ignores dark mode.
+    shikiConfig: {
+      themes: { light: 'github-light', dark: 'github-dark' },
+      defaultColor: false,
+    },
     // Math is rendered once, here, at build time. The Jekyll site loaded KaTeX,
     // MathJax and a kramdown math engine to do the same job in the browser;
     // this ships the resulting HTML plus `katex.min.css` and no JavaScript.
