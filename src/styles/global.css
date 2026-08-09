@@ -190,6 +190,22 @@ blockquote {
 
 /* Home -------------------------------------------------------------------- */
 
+.home-intro {
+  max-width: var(--measure);
+  font-size: 1.15rem;
+  color: var(--text-muted);
+}
+
+.post-list-heading {
+  margin-top: 3rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
 .post-list {
   list-style: none;
   padding: 0;
@@ -202,7 +218,7 @@ blockquote {
   border-top: 1px solid var(--border);
 }
 
-.post-list h2 {
+.post-list h3 {
   margin: 0.15em 0 0.35em;
   font-size: 1.4rem;
 }

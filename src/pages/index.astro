@@ -1,17 +1,26 @@
 ---
 /**
- * Home. Deliberately as bare as the Jekyll home it replaces (`# Posts` plus
- * the post list) — the intro and the redesign are Phase 5.
+ * Home: a short intro, then the post list. Replaces the bare `# Posts` heading
+ * the Jekyll home had.
  */
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { formatDate, getPublishedPosts, postPath } from '../lib/posts';
+import { formatDate, getPublishedPosts, postPath, readingTime } from '../lib/posts';
 
 const posts = await getPublishedPosts();
 ---
 
 <BaseLayout title="David Recio's Blog">
   <div class="home">
-    <h1 class="page-heading">Posts</h1>
+    <h1 class="page-heading">Notebooks on statistics and machine learning</h1>
+
+    <p class="home-intro">
+      I&rsquo;m David &mdash; a former mathematician, now a software engineer in Boston. These
+      posts are from 2022, when I was making that move: hypothesis testing on my own students&rsquo;
+      grades, a podcast recommender built from a million reviews, data leakage in a Kaggle
+      competition, and two passes at sentiment analysis. <a href="/about/">More about me</a>.
+    </p>
+
+    <h2 class="post-list-heading">Posts</h2>
 
     <ul class="post-list">
       {
@@ -19,12 +28,14 @@ const posts = await getPublishedPosts();
           <li>
             <span class="post-meta">
               <time datetime={post.data.date.toISOString()}>{formatDate(post.data.date)}</time>
+              <span aria-hidden="true">·</span>
+              <span>{readingTime(post)} min read</span>
             </span>
-            <h2>
+            <h3>
               <a class="post-link" href={postPath(post)}>
                 {post.data.title}
               </a>
-            </h2>
+            </h3>
             <p class="post-description">{post.data.description}</p>
           </li>
         ))
