@@ -1,6 +1,6 @@
 # Migration plan: fastpages/Jekyll → Astro
 
-**Status:** Phase 5 complete. Next: Phase 6.
+**Status:** Phase 6 complete. Next: Phase 7.
 **Audience:** the implementer (human or agent). Start with `/migrate`.
 
 The Status line above is the handoff signal — keep it in the form
@@ -81,7 +81,9 @@ src/
 public/                 → CNAME, robots.txt, static images
 tests/                  → urls.test.ts, smoke.spec.ts
 astro.config.mjs  package.json  .nvmrc
-.github/workflows/deploy.yml
+vitest.config.ts  playwright.config.ts
+.github/workflows/checks.yml   → the four checks
+.github/workflows/deploy.yml   → build and publish, arrives at cutover
 ```
 
 ---
@@ -269,9 +271,11 @@ Testing, proportionate to a five-post blog — these four, no more:
    it into CI here. It is the most important test in the repo: the thing between
    you and silently breaking every inbound link.
 3. **Smoke tests** (Playwright) — each page returns 200, has an `<h1>`, and logs
-   no console errors. Chromium is already available; do not run `playwright install`.
-   GA4 and the contact page's reCAPTCHA load from CDNs, so the console-error
-   assertion needs egress or an allowance for those two hosts.
+   no console errors. GA4 and the contact page's reCAPTCHA load from CDNs, so
+   the console-error assertion needs egress or an allowance for those two hosts.
+   A sandbox may ship Chromium at `/opt/pw-browsers/chromium`; use it via
+   `launchOptions.executablePath` rather than running `playwright install`
+   locally. CI runners have no browser, so CI does install one.
 4. **Internal link check** over `dist/` — catches bad paths from Phase 2.
 
 All four run in CI on every push to the branch.
@@ -451,3 +455,18 @@ committed posts were rewritten with that same regex.
 the work was the 31 alt texts. Tags are labels, not links: no tag pages, no new
 URLs. Colours live only in `:root` and one `prefers-color-scheme` block.
 `docs/decisions.md` is 79 lines against its 40-line budget — cut in Phase 6.
+
+<!-- Phase 6: -->
+
+**Phase 6** — All four checks green; `docs/decisions.md` cut to 40. Phase 7 must
+add `.github/workflows/checks.yml` to whatever it does with `ci.yaml` — the two
+are separate files and only `ci.yaml` is listed for deletion, which is correct.
+Runner split: `.test.ts` is vitest's, `.spec.ts` is Playwright's. `npm test`
+builds first; all four checks read `dist/`.
+The smoke tests **block GA4 and reCAPTCHA at the network layer** rather than
+ignoring their errors. Ignoring them passed here and failed in CI: with no
+egress the gtag script never loads, so with egress it loads and fires a beacon
+to a *different* host. Add any new third-party host to `THIRD_PARTY`.
+Sandbox Chromium at `/opt/pw-browsers` never matches the revision
+`@playwright/test` pins, so the config points at it by path when it exists.
+Actions are SHA-pinned — `git ls-remote` resolves tags even though `api.github.com` 403s.

@@ -31,8 +31,11 @@ arrives with the migration ([`migration-plan.md`](migration-plan.md)).
 | `scripts/convert-notebooks.py` | The conversion itself: drops fastpages `#hide` cells, folds `#collapse-*` into `<details>`, strips Colab's dataframe widgets, takes front matter from `_posts/` |
 | `scripts/nbtemplate/` | nbconvert template that emits those `<details>` wrappers |
 | `tests/expected-urls.json` | The published URL surface, taken from the live deployment |
-| `tests/` | URL parity, Playwright smoke tests, internal link check |
-| `.github/workflows/deploy.yml` | Build → GitHub Pages |
+| `tests/*.test.ts` | vitest, run against `dist/`: URL parity and the internal link check |
+| `tests/smoke.spec.ts` | Playwright. The only check that renders the site — needs a build and `astro preview`, both of which its config starts |
+| `vitest.config.ts` / `playwright.config.ts` | Which runner claims which files: `.test.ts` is vitest's, `.spec.ts` is Playwright's |
+| `.github/workflows/checks.yml` | The four checks, on every push |
+| `.github/workflows/deploy.yml` | Build → GitHub Pages. Arrives at the cutover, replacing the Jekyll `ci.yaml` |
 | `.claude/skills/migrate/` | The `/migrate` command. Temporary — delete once the migration lands |
 
 ## Still present, due for deletion
