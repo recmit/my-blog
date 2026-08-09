@@ -1,79 +1,40 @@
 # Decisions
 
-Why the repo is the way it is. One entry each: what, why, and what it rules out.
+One entry each: what, why, what it rules out.
 
-## Astro, replacing fastpages — 2026-07
+**Astro, replacing fastpages.** fastpages was deprecated in 2022 and built in an
+unmaintained Docker image on Ruby 2.7-era gems; the site was becoming
+unbuildable. Astro beat Quarto (notebook-first), Hugo (no component model) and
+Next.js (framework overhead on five posts). Rules out little — content stays Markdown.
 
-fastpages was deprecated in 2022 and built inside an unmaintained Docker image
-on Ruby 2.7-era gems; the site was on track to become unbuildable.
+**Notebooks frozen, out of the build.** Converted to Markdown once and
+committed, never re-executed; fastpages never did either, so the saved outputs
+have always been what shipped, and Python stays out of the build for good. The
+conversion reproduces what fastpages published, not the raw notebook — `#hide`
+cells dropped, `#collapse-*` folded into `<details>`, Colab widgets stripped —
+so it costs a converter that knows a dead tool's directives.
 
-Astro beat Quarto (notebook-first, and this blog is moving away from notebooks),
-Hugo (no component model, so interactive pages mean hand-rolling), and Next.js
-(application-framework overhead on a five-post site). It keeps interactive
-elements and a future backend available without charging for them up front.
+**GitHub Pages, for now.** Static hosting is enough and the domain already points
+there; an adapter can move it later. Rules out a backend — hence Formspree.
 
-Rules out: little. Content stays portable Markdown, so a later move is cheap.
+**URLs frozen, `build.format: 'preserve'`.** Pages has no server-side redirects,
+so a changed path is a hard 404. The published URLs come in two shapes — posts
+`/2022/03/19/slug.html`, pages `/about/` — and `preserve` is the only format
+that keeps both. The list is pinned in `tests/expected-urls.json` and enforced
+by a test, not by convention. Costs: every page is a directory with an
+`index.astro` in it, and post URLs lack `.html` in `astro dev`.
 
-## Notebooks frozen, out of the build
+**Sitemap hand-rolled.** `@astrojs/sitemap` derives URLs from the config rather
+than the built files, so under `preserve` every URL it emitted was a 404, and it
+publishes `sitemap-index.xml`, not the frozen `/sitemap.xml`.
+`src/pages/sitemap.xml.ts` derives both shapes, finding pages by convention — one
+placed outside it is missed, which `tests/urls.test.ts` catches.
 
-The five 2022 posts were converted to Markdown once and committed, and the
-notebooks were not re-executed — fastpages never did either, so the saved
-outputs have always been what shipped. This keeps Python and a 2022 ML
-dependency tree out of the build permanently.
+**Dark mode by `prefers-color-scheme`.** No toggle: that needs client-side
+JavaScript and a stored preference, and the OS already holds one. Shiki emits
+both themes per token so code follows too. Costs: colours may only be defined in
+`:root` and that one media block.
 
-The conversion reproduces what fastpages published, not the raw notebook:
-`#hide` cells are dropped, `#collapse-*` cells become `<details>`. Costs: a
-converter that knows a dead tool's directives, and republishing by hand.
-
-## GitHub Pages, for now
-
-Static hosting is sufficient and the domain already points there. Astro can move
-to a host with server support later by adding an adapter, so this is not a
-one-way door.
-
-Rules out: a backend. The contact form goes through Formspree as a result.
-
-## `build.format: 'preserve'`
-
-The frozen URLs come in two shapes: posts are `/2022/03/19/slug.html`, pages are
-`/about/`. Astro's `directory` format would publish the posts as
-`slug.html/index.html`; `file` would flatten the pages to `about.html`.
-`preserve` writes each route where its source file sits, so both shapes coexist.
-
-Costs: every page route is a directory with an `index.astro` inside, and post
-URLs in `astro dev` lack the `.html` the built files carry.
-
-## Sitemap hand-rolled, not `@astrojs/sitemap`
-
-The integration was tried and reverted: it derives URLs from the config rather
-than the built files, so under `build.format: 'preserve'` it stripped the
-`.html` off every post and the slash off every page, and it publishes
-`sitemap-index.xml` rather than the frozen `/sitemap.xml`. Patching its output
-would have restated this site's URL rules as guesses about someone else's.
-
-`src/pages/sitemap.xml.ts` derives both shapes: posts from `postPath()`, pages
-from `import.meta.glob`. Nothing is listed by hand.
-
-Costs: a page outside the `<name>/index.astro` convention is not found —
-`tests/urls.test.ts` turns that into a failure rather than a silent omission.
-
-## URLs frozen
-
-The published URL surface predates this repo's current shape, and GitHub Pages
-serves files with no server-side redirects — so a changed path is a hard 404,
-not a redirect. Keeping the paths costs one build setting; replacing them would
-cost a stub page per old URL. It is pinned in `tests/expected-urls.json` and
-enforced by a test, rather than left to convention and good intentions.
-
-## Dark mode by `prefers-color-scheme`, and code in two themes
-
-No toggle: a toggle needs client-side JavaScript and a stored preference, and
-the OS already holds that preference. So the palette is one `@media` block of
-custom-property values and no extra rules.
-
-Shiki emits both `github-light` and `github-dark` per token (`defaultColor:
-false`) so code follows the scheme too. That also changed light mode, where
-code blocks had been dark on a white page.
-
-Costs: colours may only be defined in `:root` and that one media block —
-anything hard-coded elsewhere breaks in one scheme.
+**Four checks, no more.** `astro check`, URL parity, smoke tests, internal link
+check — proportionate to a five-post blog. No unit tests: there is barely any
+logic to test, and the build either produces the right files or it does not.

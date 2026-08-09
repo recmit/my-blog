@@ -17,3 +17,7 @@ node_modules
 dist
 .astro
 .venv-nbconvert
+
+# Playwright
+test-results
+playwright-report

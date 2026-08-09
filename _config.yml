@@ -78,6 +78,10 @@ exclude:
   - dist
   - package.json
   - package-lock.json
+  - vitest.config.ts
+  - playwright.config.ts
+  - test-results
+  - playwright-report
 
 # this setting allows you to keep pages organized in the _pages folder
 include:
