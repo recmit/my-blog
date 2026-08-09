@@ -2,8 +2,9 @@
  * The whole stylesheet. It replaces Primer (CDN) and FontAwesome (CDN), which
  * between them shipped ~200 KB to render a header, a post and a form.
  *
- * Dark mode is Phase 5 — the colours are already custom properties so that it
- * is a second block of values rather than a rewrite.
+ * Every colour is a custom property, so dark mode is the second block of
+ * values below and not a second set of rules. Nothing outside `:root` and the
+ * `prefers-color-scheme` block names a colour literally — keep it that way.
  */
 
 :root {
@@ -14,16 +15,39 @@
     -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
 
+  color-scheme: light dark;
+
   --text: #24292f;
   --text-muted: #57606a;
   --bg: #ffffff;
   --bg-subtle: #f6f8fa;
   --border: #d0d7de;
   --link: #0969da;
+  /* Text on a `--link` background — the primary button. */
+  --on-link: #ffffff;
   /* Search-hit highlight; the only place a background tint carries meaning. */
   --accent-mark: #fff3c4;
 
   --radius: 6px;
+}
+
+/*
+ * Dark mode. `prefers-color-scheme` only — there is no toggle, because a
+ * toggle needs client-side JavaScript and a stored preference, and the OS
+ * already carries that preference.
+ */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text: #e6edf3;
+    --text-muted: #9198a1;
+    --bg: #0d1117;
+    --bg-subtle: #161b22;
+    --border: #30363d;
+    --link: #4493f8;
+    /* White on this blue is only ~3:1; the page background is not. */
+    --on-link: #0d1117;
+    --accent-mark: #57430a;
+  }
 }
 
 *,
@@ -216,6 +240,74 @@ blockquote {
   max-width: var(--measure);
 }
 
+.post-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* Tags ---------------------------------------------------------------------
+ *
+ * Labels, not links: there are no tag index pages. The Jekyll site linked its
+ * categories at `/categories/#<slug>`, a page that was never published, so
+ * every one of those links 404'd. */
+
+.tag-list {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.9rem 0 0;
+  padding: 0;
+}
+
+.tag {
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--text-muted);
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.1rem 0.5rem;
+}
+
+/* TL;DR and archive note --------------------------------------------------- */
+
+.tldr {
+  max-width: var(--measure);
+  margin: 0 0 1.5rem;
+  padding: 1rem 1.25rem 0.35rem;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.tldr-heading {
+  margin: 0 0 0.6em;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.tldr ul {
+  margin: 0 0 1em;
+  padding-left: 1.2em;
+}
+
+.tldr li {
+  margin-bottom: 0.4em;
+}
+
+.archive-note {
+  max-width: var(--measure);
+  margin: 0 0 2.5rem;
+  padding-left: 1em;
+  border-left: 4px solid var(--border);
+  font-size: 0.95rem;
+  color: var(--text-muted);
+}
+
 /*
  * Posts hold two kinds of content at once. Prose wants a measure it is
  * comfortable to read; notebook output — code, dataframes, plots — is wider
@@ -268,6 +360,25 @@ pre:not([class]) {
   word-break: break-word;
 }
 
+/*
+ * Shiki emits both themes as custom properties per token (see
+ * `astro.config.mjs`); these two rules are what actually chooses one. Without
+ * them highlighted code renders unstyled.
+ */
+.astro-code,
+.astro-code span {
+  color: var(--shiki-light);
+  background-color: var(--shiki-light-bg);
+}
+
+@media (prefers-color-scheme: dark) {
+  .astro-code,
+  .astro-code span {
+    color: var(--shiki-dark);
+    background-color: var(--shiki-dark-bg);
+  }
+}
+
 /* Tables ------------------------------------------------------------------ */
 
 table {
@@ -303,6 +414,20 @@ figcaption {
   font-size: 0.9rem;
   color: var(--text-muted);
   text-align: center;
+}
+
+/*
+ * The matplotlib plots are PNGs with an opaque white canvas, so on a dark page
+ * they arrive as bare white slabs. Padding them onto a light card makes that
+ * read as deliberate. Do not invert or filter them — that would recolour the
+ * plots, and the colours carry meaning.
+ */
+@media (prefers-color-scheme: dark) {
+  .post-content img {
+    background: #ffffff;
+    border-radius: var(--radius);
+    padding: 0.5rem;
+  }
 }
 
 /* Collapsed cells (fastpages `#collapse-hide` / `#collapse-output`) -------- */
@@ -395,7 +520,7 @@ a:focus-visible {
 
 .btn-primary {
   background: var(--link);
-  color: #fff;
+  color: var(--on-link);
 }
 
 .btn-primary:hover {
