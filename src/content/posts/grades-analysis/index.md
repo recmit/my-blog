@@ -4,6 +4,24 @@ description: "We explore the possible effects of student groups on final grades.
 date: 2022-03-19
 notebook: "notebooks/2022-03-19-grades-analysis.ipynb"
 archived: true
+tags: ["statistics", "hypothesis testing", "bootstrap", "ANOVA", "simulation"]
+tldr:
+  - "Three sections of a flipped-classroom course, with students randomly
+    assigned to breakout groups of about four. The question: did the group you
+    landed in move your final grade?"
+  - "No — not detectably. Across four tests (permutation, semiparametric
+    bootstrap, ANOVA F, Welch F) the smallest p-value was 0.053, in Section 2.
+    Correcting for the three sections needs a rejection threshold around 0.15
+    before that counts, under Benjamini-Hochberg as well as Bonferroni."
+  - "That is a null result, not evidence of no effect. Simulation puts the
+    power of all four tests low at these group sizes: only an effect as large
+    as the observed spread in sample group means is reliably detected."
+  - "The semiparametric bootstrap is by far the weakest of the four at groups
+    of four, and catches up with the others at groups of ten — the group size
+    is the problem, not the method."
+  - "The permutation test and the uncorrected F-test tracked each other to
+    within 0.01 on all three sections, which suggests ANOVA holds up here
+    despite the grades being clearly left-skewed rather than normal."
 ---
 
 The Covid pandemic arrived in the US while I was a visiting professor at Lehigh University. Like many, we had to quickly adapt to a rapidly evolving situation and transition from a physical classroom one week to a fully virtual format the next. To capitalize on the situation, I implemented a flipped classroom with prerecorded lectures. This entailed the students working together on exercises over Zoom divided into breakout rooms. The breakout room groups were created at random for fairness and retained throughout the whole semester. The main rationale for not changing the groups is that the students needed time to get to know each other and figure out a team-based work flow (students in each group had to prepare shared answers on OneNote). However, the downside was that some groups worked together better than others.
