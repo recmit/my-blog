@@ -5,12 +5,8 @@ _site
 .sass-cache
 .jekyll-cache
 .jekyll-metadata
-*.xml
 vendor
 notebooks/.ipynb_checkpoints
-# Local Netlify folder
-.netlify
-.tweet-cache
 __pycache__
 .DS_Store
 node_modules

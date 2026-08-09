@@ -461,10 +461,12 @@ URLs. Colours live only in `:root` and one `prefers-color-scheme` block.
 **Phase 6** — All four checks green; `docs/decisions.md` cut to 40. Phase 7 must
 add `.github/workflows/checks.yml` to whatever it does with `ci.yaml` — the two
 are separate files and only `ci.yaml` is listed for deletion, which is correct.
-Runner split: `.test.ts` is vitest's, `.spec.ts` is Playwright's, enforced by
-both configs — a new test named the wrong way is silently claimed by the wrong
-runner. `npm test` builds first on purpose; all four checks read `dist/`.
-This sandbox's `/opt/pw-browsers` Chromium never matches the revision
-`@playwright/test` pins, so `playwright.config.ts` points at it by path when it
-exists; the step above now says so. Actions are SHA-pinned — `git ls-remote`
-resolves tags here even though `api.github.com` 403s.
+Runner split: `.test.ts` is vitest's, `.spec.ts` is Playwright's. `npm test`
+builds first; all four checks read `dist/`.
+The smoke tests **block GA4 and reCAPTCHA at the network layer** rather than
+ignoring their errors. Ignoring them passed here and failed in CI: with no
+egress the gtag script never loads, so with egress it loads and fires a beacon
+to a *different* host. Add any new third-party host to `THIRD_PARTY`.
+Sandbox Chromium at `/opt/pw-browsers` never matches the revision
+`@playwright/test` pins, so the config points at it by path when it exists.
+Actions are SHA-pinned — `git ls-remote` resolves tags even though `api.github.com` 403s.

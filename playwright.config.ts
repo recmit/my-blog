@@ -18,7 +18,12 @@ export default defineConfig({
   testMatch: '**/*.spec.ts',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  reporter: process.env.CI ? 'github' : 'list',
+  // In CI, annotations on the diff *and* an HTML report — the workflow uploads
+  // the latter on failure, and with the `github` reporter alone there was no
+  // report on disk for it to find.
+  reporter: process.env.CI
+    ? [['github'], ['html', { open: 'never' }]]
+    : [['list']],
   use: {
     baseURL: `http://localhost:${port}`,
     trace: 'on-first-retry',

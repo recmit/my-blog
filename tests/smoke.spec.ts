@@ -19,12 +19,21 @@ const pages = (expectedUrls as string[]).filter(
 );
 
 /**
- * Third-party scripts we load on purpose and do not control. Both are blocked
- * or noisy on a network without egress, and neither failing says anything
- * about this site's own code, so console noise from these hosts is ignored —
- * anything else is a failure.
+ * Third parties we load on purpose and do not control: GA4 (the gtag script on
+ * `googletagmanager`, the beacon on `google-analytics`) and the contact page's
+ * reCAPTCHA. They are blocked outright below rather than merely ignored,
+ * because whether they load is a property of the network, not of this site: a
+ * machine without egress sees them fail, one with egress sees the analytics
+ * beacon abort at page teardown, and neither says anything about our code.
+ * Blocking makes every environment agree.
  */
-const THIRD_PARTY = [/googletagmanager\.com/, /google\.com\/recaptcha/, /gstatic\.com/];
+const THIRD_PARTY = [
+  /googletagmanager\.com/,
+  /google-analytics\.com/,
+  /analytics\.google\.com/,
+  /google\.com\/recaptcha/,
+  /gstatic\.com/,
+];
 
 const isOurs = (...where: string[]) =>
   !THIRD_PARTY.some((host) => where.some((text) => host.test(text)));
@@ -32,6 +41,13 @@ const isOurs = (...where: string[]) =>
 for (const url of pages) {
   test(`${url} loads cleanly`, async ({ page }) => {
     const problems: string[] = [];
+
+    // Blocking still fires `requestfailed` for each aborted request, so the
+    // filters below are what keep that self-inflicted noise out of `problems`.
+    await page.route(
+      (candidate) => !isOurs(candidate.toString()),
+      (route) => route.abort(),
+    );
 
     page.on('console', (message) => {
       // A failed subresource logs "Failed to load resource: …" with no URL in
