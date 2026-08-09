@@ -1,8 +1,8 @@
 name: Checks
 
-# The Astro checks. Runs on every push while the migration is in progress;
-# `ci.yaml` still builds and deploys the Jekyll site until the cutover phase
-# replaces it.
+# The four checks, on every push. Separate from `deploy.yml`, which publishes
+# `master` — these run on every branch, and a red check here does not block a
+# deploy, so read them before merging.
 on:
   push:
   workflow_dispatch:

@@ -12,6 +12,11 @@ For each `notebooks/YYYY-MM-DD-<slug>.ipynb` this writes
 `src/content/posts/<slug>/index.md` plus the images that post references.
 Front matter comes from the matching `_posts/*.md`, which is where the
 correct title and description already live.
+
+`_posts/` was deleted with the rest of the Jekyll tree at the cutover, so this
+no longer runs as written — it is kept as the record of how the committed posts
+were produced. To run it again, restore `_posts/` from the commit before the
+cutover, or take the front matter from the posts it already wrote.
 """
 
 from __future__ import annotations

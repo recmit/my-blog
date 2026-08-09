@@ -2,11 +2,9 @@
 
 How to work in this repo. Keep it this short.
 
-**Status:** migrating from fastpages/Jekyll to Astro. The Jekyll tree (`_*`
-directories, `Gemfile`) still publishes the live site; the Astro tree (`src/`,
-`astro.config.mjs`) is being built alongside it. Phase order and gates:
-[`docs/migration-plan.md`](docs/migration-plan.md). The Jekyll tree is deleted
-last, and only with the owner's approval. Run a single phase with `/migrate`.
+An Astro site on GitHub Pages, migrated from fastpages/Jekyll in 2026. Pushing
+to `master` builds and deploys it; there is no deploy branch. The old site
+remains on the `gh-pages` branch as a record — nothing writes to it now.
 
 ## Commands
 

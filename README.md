@@ -5,18 +5,15 @@ from pure mathematics research into software engineering.
 
 Live at **<https://david-recio.com>**.
 
-## Status
-
-Migrating from [fastpages](https://github.com/fastai/fastpages), deprecated
-since 2022, to [Astro](https://astro.build). The Jekyll build still publishes
-the site; the Astro replacement is being built alongside it. Plan and phase
-order: [`docs/migration-plan.md`](docs/migration-plan.md).
+Built with [Astro](https://astro.build) and published to GitHub Pages by
+`.github/workflows/deploy.yml` on every push to `master`.
 
 ## Running it locally
 
 ```sh
 npm install
 npm run dev      # http://localhost:4321
+npm run preview  # builds first — the only way to see search and the final URLs
 ```
 
 ## Adding a post
