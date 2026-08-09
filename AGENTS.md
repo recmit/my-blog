@@ -15,7 +15,11 @@ last, and only with the owner's approval. Run a single phase with `/migrate`.
 | `npm run dev` | Local preview at `localhost:4321`, hot reload |
 | `npm run build` | Static build into `dist/` |
 | `npx astro check` | Types and content schema. Run before every commit |
-| `npm test` | URL parity, smoke tests, internal link check |
+| `npm test` | Builds, then runs URL parity, the internal link check and the smoke tests |
+
+Those four are the whole test suite, and all four run in CI on every push. They
+check the built site, not the source — so `npm test` builds first, and a stale
+`dist/` is never what you are testing.
 
 ## Layout
 

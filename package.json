@@ -12,7 +12,10 @@
     "preview": "astro preview",
     "astro": "astro",
     "check": "astro check",
-    "test": "vitest run"
+    "test": "npm run build && npm run test:urls && npm run test:links && npm run test:smoke",
+    "test:urls": "vitest run tests/urls.test.ts",
+    "test:links": "vitest run tests/links.test.ts",
+    "test:smoke": "playwright test"
   },
   "dependencies": {
     "@astrojs/markdown-remark": "^7.2.2",
@@ -24,6 +27,7 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
+    "@playwright/test": "^1.62.1",
     "@types/node": "^26.2.0",
     "pagefind": "^1.5.2",
     "typescript": "^6.0.3",
