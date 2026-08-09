@@ -30,6 +30,23 @@ export async function getPublishedPosts(): Promise<Post[]> {
   return posts.sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
 }
 
+/**
+ * Estimated reading time in whole minutes, at 200 wpm.
+ *
+ * Counted over prose only: fenced code blocks and the `<details>` wrappers
+ * around them are stripped first. These are notebook posts, so counting the
+ * raw body would triple the estimate on the strength of dataframe dumps and
+ * import lists that nobody reads top to bottom.
+ */
+export function readingTime(post: Post): number {
+  const prose = post.body
+    ?.replace(/^```[\s\S]*?^```/gm, '')
+    .replace(/<[^>]+>/g, '')
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, '');
+  const words = prose?.split(/\s+/).filter(Boolean).length ?? 0;
+  return Math.max(1, Math.round(words / 200));
+}
+
 /** `Mar 19, 2022` — the format the Jekyll site used, pinned to UTC. */
 export function formatDate(date: Date): string {
   return date.toLocaleDateString('en-US', {

@@ -1,13 +1,14 @@
 ---
 import BaseLayout from './BaseLayout.astro';
-import { formatDate, type Post } from '../lib/posts';
+import { formatDate, readingTime, type Post } from '../lib/posts';
 
 interface Props {
   post: Post;
 }
 
 const { post } = Astro.props;
-const { title, description, date } = post.data;
+const { title, description, date, tldr, tags, archived } = post.data;
+const minutes = readingTime(post);
 ---
 
 <BaseLayout title={title} description={description} ogType="article" publishedDate={date}>
@@ -17,8 +18,47 @@ const { title, description, date } = post.data;
       <p class="page-description">{description}</p>
       <p class="post-meta">
         <time datetime={date.toISOString()}>{formatDate(date)}</time>
+        <span aria-hidden="true">·</span>
+        <span>{minutes} min read</span>
       </p>
+      {
+        tags.length > 0 && (
+          <ul class="tag-list" aria-label="Tags">
+            {tags.map((tag) => (
+              <li class="tag">{tag}</li>
+            ))}
+          </ul>
+        )
+      }
     </header>
+
+    {
+      /* Hand-written summary (front matter `tldr`), not extracted from the post.
+         Marked `data-pagefind-ignore` so search hits point at the prose that
+         makes the claim rather than at the bullet repeating it. */
+    }
+    {
+      tldr.length > 0 && (
+        <aside class="tldr" data-pagefind-ignore aria-labelledby="tldr-heading">
+          <h2 id="tldr-heading" class="tldr-heading">
+            TL;DR
+          </h2>
+          <ul>
+            {tldr.map((point) => (
+              <li>{point}</li>
+            ))}
+          </ul>
+        </aside>
+      )
+    }
+
+    {
+      archived && (
+        <p class="archive-note">
+          Written in 2022, when I was moving from mathematics into industry. Left as it was.
+        </p>
+      )
+    }
 
     <div class="post-content">
       <slot />

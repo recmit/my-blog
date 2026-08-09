@@ -4,6 +4,25 @@ description: "In this post we will use the Hugging Face API and PyTorch to fine-
 date: 2022-10-21
 notebook: "notebooks/2022-10-21-bert-fine-tune-podcast-reviews.ipynb"
 archived: true
+tags: ["NLP", "BERT", "transformers", "fine-tuning", "Ray Tune"]
+tldr:
+  - "Fine-tunes base distilBERT on 80,000 podcast reviews to predict the star
+    rating from the review's title and body, with Ray Tune searching the
+    hyperparameters. Collapsing the five predicted ratings to two gives a
+    sentiment classifier for free."
+  - "On a 5,000-review test set balanced across ratings, that model reaches
+    0.883 sentiment accuracy against 0.815 for the off-the-shelf distilBERT
+    fine-tuned on SST2 — a real gain for roughly two epochs of training."
+  - "Predicting the star rating itself, all five classes, is much harder:
+    0.589. The stars are noisy labels, and neighbouring ones especially so."
+  - "Fine-tuning buys domain knowledge, not just fit. The model picks up
+    conventions specific to podcast reviews — reviews of horror podcasts use
+    language that reads as negative in general English while plainly approving
+    of the show."
+  - "Confidence is not accuracy. Trained on to 40,000 steps (4 epochs) the
+    output probabilities pile up at 0 and 1 while the evaluation loss climbs
+    and accuracy falls below the 17,000-step checkpoint. The post reads that
+    sharpening as a symptom of overfitting rather than a sign of learning."
 ---
 
 In a previous notebook we compared the performance of two methods to classify podcast reviews by sentiment. The VADER polarity score and a distilBERT transformer fine-tuned on the SST2 dataset, which consists of sentences from movie reviews.
@@ -1920,7 +1939,7 @@ evaluate_and_plot(
      'recall': array([0.66078431, 0.44008056, 0.46909828, 0.52818991, 0.84428716])}
 
     
-![](./output_47_2.png)
+![A five-by-five grid of histograms of predicted rating probabilities at the 17,000-step checkpoint, one row per true star rating.](./output_47_2.png)
     
 
 We see both in the recall and in the histograms that the model has a particularly hard time with 2 and 3 star ratings.
@@ -1951,7 +1970,7 @@ evaluate_and_plot(
     {'accuracy': 0.8828, 'recall': array([0.89533333, 0.864     ])}
 
     
-![](./output_50_2.png)
+![Two histograms of the predicted probability that a review is positive at the 17,000-step checkpoint, split by true sentiment.](./output_50_2.png)
     
 
 Now we evaluate the model which was fine-tuned on SST2 and is available on Hugging Face.
@@ -1970,7 +1989,7 @@ evaluate_and_plot(
     {'accuracy': 0.8148, 'recall': array([0.81466667, 0.815     ])}
 
     
-![](./output_52_2.png)
+![Two histograms of the predicted probability that a review is positive for the distilBERT fine-tuned on SST2, split by true sentiment.](./output_52_2.png)
     
 
 The model fine-tuned on SST has a lower accuracy $0.815$ and also lower recall scores of $0.815$ and $0.815$. It is remarkable how similar the recall scores of positive and negative ratings are for the distilBERT model fine-tuned on SST. After rounding they are actually identical.
@@ -2022,9 +2041,7 @@ holdout_reviews['sentiment'] = (holdout_reviews['rating'] > 3).astype(int)
 pd.crosstab(holdout_reviews['sentiment pred mymodel'], holdout_reviews['sentiment'])
 ```
 
-  <div id="df-9bd5760a-642d-4a01-82a4-b63dcd80ac8e">
-    <div class="colab-df-container">
-      <div>
+<div>
 <table class="dataframe">
   <thead>
     <tr style="text-align: right;">
@@ -2052,89 +2069,12 @@ pd.crosstab(holdout_reviews['sentiment pred mymodel'], holdout_reviews['sentimen
   </tbody>
 </table>
 </div>
-      <button class="colab-df-convert" onclick="convertToInteractive('df-9bd5760a-642d-4a01-82a4-b63dcd80ac8e')"
-              title="Convert this dataframe to an interactive table."
-              style="display:none;">
-
-  <svg xmlns="http://www.w3.org/2000/svg" height="24px"viewBox="0 0 24 24"
-       width="24px">
-    <path d="M0 0h24v24H0V0z" fill="none"/>
-    <path d="M18.56 5.44l.94 2.06.94-2.06 2.06-.94-2.06-.94-.94-2.06-.94 2.06-2.06.94zm-11 1L8.5 8.5l.94-2.06 2.06-.94-2.06-.94L8.5 2.5l-.94 2.06-2.06.94zm10 10l.94 2.06.94-2.06 2.06-.94-2.06-.94-.94-2.06-.94 2.06-2.06.94z"/><path d="M17.41 7.96l-1.37-1.37c-.4-.4-.92-.59-1.43-.59-.52 0-1.04.2-1.43.59L10.3 9.45l-7.72 7.72c-.78.78-.78 2.05 0 2.83L4 21.41c.39.39.9.59 1.41.59.51 0 1.02-.2 1.41-.59l7.78-7.78 2.81-2.81c.8-.78.8-2.07 0-2.86zM5.41 20L4 18.59l7.72-7.72 1.47 1.35L5.41 20z"/>
-  </svg>
-      </button>
-
-  <style>
-    .colab-df-container {
-      display:flex;
-      flex-wrap:wrap;
-      gap: 12px;
-    }
-
-    .colab-df-convert {
-      background-color: #E8F0FE;
-      border: none;
-      border-radius: 50%;
-      cursor: pointer;
-      display: none;
-      fill: #1967D2;
-      height: 32px;
-      padding: 0 0 0 0;
-      width: 32px;
-    }
-
-    .colab-df-convert:hover {
-      background-color: #E2EBFA;
-      box-shadow: 0px 1px 2px rgba(60, 64, 67, 0.3), 0px 1px 3px 1px rgba(60, 64, 67, 0.15);
-      fill: #174EA6;
-    }
-
-    [theme=dark] .colab-df-convert {
-      background-color: #3B4455;
-      fill: #D2E3FC;
-    }
-
-    [theme=dark] .colab-df-convert:hover {
-      background-color: #434B5C;
-      box-shadow: 0px 1px 3px 1px rgba(0, 0, 0, 0.15);
-      filter: drop-shadow(0px 1px 2px rgba(0, 0, 0, 0.3));
-      fill: #FFFFFF;
-    }
-  </style>
-
-      <script>
-        const buttonEl =
-          document.querySelector('#df-9bd5760a-642d-4a01-82a4-b63dcd80ac8e button.colab-df-convert');
-        buttonEl.style.display =
-          google.colab.kernel.accessAllowed ? 'block' : 'none';
-
-        async function convertToInteractive(key) {
-          const element = document.querySelector('#df-9bd5760a-642d-4a01-82a4-b63dcd80ac8e');
-          const dataTable =
-            await google.colab.kernel.invokeFunction('convertToInteractive',
-                                                     [key], {});
-          if (!dataTable) return;
-
-          const docLinkHtml = 'Like what you see? Visit the ' +
-            '<a target="_blank" href=https://colab.research.google.com/notebooks/data_table.ipynb>data table notebook</a>'
-            + ' to learn more about interactive tables.';
-          element.innerHTML = '';
-          dataTable['output_type'] = 'display_data';
-          await google.colab.output.renderOutput(dataTable, element);
-          const docLink = document.createElement('div');
-          docLink.innerHTML = docLinkHtml;
-          element.appendChild(docLink);
-        }
-      </script>
-    </div>
-  </div>
 
 ```python
 pd.crosstab(holdout_reviews['sentiment pred sstmodel'], holdout_reviews['sentiment'])
 ```
 
-  <div id="df-98668af1-c4e4-4051-bba8-97600dc3eec4">
-    <div class="colab-df-container">
-      <div>
+<div>
 <table class="dataframe">
   <thead>
     <tr style="text-align: right;">
@@ -2162,81 +2102,6 @@ pd.crosstab(holdout_reviews['sentiment pred sstmodel'], holdout_reviews['sentime
   </tbody>
 </table>
 </div>
-      <button class="colab-df-convert" onclick="convertToInteractive('df-98668af1-c4e4-4051-bba8-97600dc3eec4')"
-              title="Convert this dataframe to an interactive table."
-              style="display:none;">
-
-  <svg xmlns="http://www.w3.org/2000/svg" height="24px"viewBox="0 0 24 24"
-       width="24px">
-    <path d="M0 0h24v24H0V0z" fill="none"/>
-    <path d="M18.56 5.44l.94 2.06.94-2.06 2.06-.94-2.06-.94-.94-2.06-.94 2.06-2.06.94zm-11 1L8.5 8.5l.94-2.06 2.06-.94-2.06-.94L8.5 2.5l-.94 2.06-2.06.94zm10 10l.94 2.06.94-2.06 2.06-.94-2.06-.94-.94-2.06-.94 2.06-2.06.94z"/><path d="M17.41 7.96l-1.37-1.37c-.4-.4-.92-.59-1.43-.59-.52 0-1.04.2-1.43.59L10.3 9.45l-7.72 7.72c-.78.78-.78 2.05 0 2.83L4 21.41c.39.39.9.59 1.41.59.51 0 1.02-.2 1.41-.59l7.78-7.78 2.81-2.81c.8-.78.8-2.07 0-2.86zM5.41 20L4 18.59l7.72-7.72 1.47 1.35L5.41 20z"/>
-  </svg>
-      </button>
-
-  <style>
-    .colab-df-container {
-      display:flex;
-      flex-wrap:wrap;
-      gap: 12px;
-    }
-
-    .colab-df-convert {
-      background-color: #E8F0FE;
-      border: none;
-      border-radius: 50%;
-      cursor: pointer;
-      display: none;
-      fill: #1967D2;
-      height: 32px;
-      padding: 0 0 0 0;
-      width: 32px;
-    }
-
-    .colab-df-convert:hover {
-      background-color: #E2EBFA;
-      box-shadow: 0px 1px 2px rgba(60, 64, 67, 0.3), 0px 1px 3px 1px rgba(60, 64, 67, 0.15);
-      fill: #174EA6;
-    }
-
-    [theme=dark] .colab-df-convert {
-      background-color: #3B4455;
-      fill: #D2E3FC;
-    }
-
-    [theme=dark] .colab-df-convert:hover {
-      background-color: #434B5C;
-      box-shadow: 0px 1px 3px 1px rgba(0, 0, 0, 0.15);
-      filter: drop-shadow(0px 1px 2px rgba(0, 0, 0, 0.3));
-      fill: #FFFFFF;
-    }
-  </style>
-
-      <script>
-        const buttonEl =
-          document.querySelector('#df-98668af1-c4e4-4051-bba8-97600dc3eec4 button.colab-df-convert');
-        buttonEl.style.display =
-          google.colab.kernel.accessAllowed ? 'block' : 'none';
-
-        async function convertToInteractive(key) {
-          const element = document.querySelector('#df-98668af1-c4e4-4051-bba8-97600dc3eec4');
-          const dataTable =
-            await google.colab.kernel.invokeFunction('convertToInteractive',
-                                                     [key], {});
-          if (!dataTable) return;
-
-          const docLinkHtml = 'Like what you see? Visit the ' +
-            '<a target="_blank" href=https://colab.research.google.com/notebooks/data_table.ipynb>data table notebook</a>'
-            + ' to learn more about interactive tables.';
-          element.innerHTML = '';
-          dataTable['output_type'] = 'display_data';
-          await google.colab.output.renderOutput(dataTable, element);
-          const docLink = document.createElement('div');
-          docLink.innerHTML = docLinkHtml;
-          element.appendChild(docLink);
-        }
-      </script>
-    </div>
-  </div>
 
 Clearly the results are way better for our model than the model fine-tuned on SST2. The latter does much worse on these held out reviews than for the generic reviews. I swear I didn't cherry pick them to make our model look good! But I did pick some of them because they seemed like interesting examples that are particular to the context of podcast reviews.
 
@@ -2248,9 +2113,7 @@ First there are two reviews for two different **horror themed podcasts**. I wond
 holdout_reviews.loc[[11204, 11211], ['review', 'rating', 'positive prob mymodel', 'positive prob sstmodel', 'polarity score']]
 ```
 
-  <div id="df-06f2f90a-53a9-4fd6-9cd7-4bb5ff221950">
-    <div class="colab-df-container">
-      <div>
+<div>
 <table class="dataframe">
   <thead>
     <tr style="text-align: right;">
@@ -2282,81 +2145,6 @@ holdout_reviews.loc[[11204, 11211], ['review', 'rating', 'positive prob mymodel'
   </tbody>
 </table>
 </div>
-      <button class="colab-df-convert" onclick="convertToInteractive('df-06f2f90a-53a9-4fd6-9cd7-4bb5ff221950')"
-              title="Convert this dataframe to an interactive table."
-              style="display:none;">
-
-  <svg xmlns="http://www.w3.org/2000/svg" height="24px"viewBox="0 0 24 24"
-       width="24px">
-    <path d="M0 0h24v24H0V0z" fill="none"/>
-    <path d="M18.56 5.44l.94 2.06.94-2.06 2.06-.94-2.06-.94-.94-2.06-.94 2.06-2.06.94zm-11 1L8.5 8.5l.94-2.06 2.06-.94-2.06-.94L8.5 2.5l-.94 2.06-2.06.94zm10 10l.94 2.06.94-2.06 2.06-.94-2.06-.94-.94-2.06-.94 2.06-2.06.94z"/><path d="M17.41 7.96l-1.37-1.37c-.4-.4-.92-.59-1.43-.59-.52 0-1.04.2-1.43.59L10.3 9.45l-7.72 7.72c-.78.78-.78 2.05 0 2.83L4 21.41c.39.39.9.59 1.41.59.51 0 1.02-.2 1.41-.59l7.78-7.78 2.81-2.81c.8-.78.8-2.07 0-2.86zM5.41 20L4 18.59l7.72-7.72 1.47 1.35L5.41 20z"/>
-  </svg>
-      </button>
-
-  <style>
-    .colab-df-container {
-      display:flex;
-      flex-wrap:wrap;
-      gap: 12px;
-    }
-
-    .colab-df-convert {
-      background-color: #E8F0FE;
-      border: none;
-      border-radius: 50%;
-      cursor: pointer;
-      display: none;
-      fill: #1967D2;
-      height: 32px;
-      padding: 0 0 0 0;
-      width: 32px;
-    }
-
-    .colab-df-convert:hover {
-      background-color: #E2EBFA;
-      box-shadow: 0px 1px 2px rgba(60, 64, 67, 0.3), 0px 1px 3px 1px rgba(60, 64, 67, 0.15);
-      fill: #174EA6;
-    }
-
-    [theme=dark] .colab-df-convert {
-      background-color: #3B4455;
-      fill: #D2E3FC;
-    }
-
-    [theme=dark] .colab-df-convert:hover {
-      background-color: #434B5C;
-      box-shadow: 0px 1px 3px 1px rgba(0, 0, 0, 0.15);
-      filter: drop-shadow(0px 1px 2px rgba(0, 0, 0, 0.3));
-      fill: #FFFFFF;
-    }
-  </style>
-
-      <script>
-        const buttonEl =
-          document.querySelector('#df-06f2f90a-53a9-4fd6-9cd7-4bb5ff221950 button.colab-df-convert');
-        buttonEl.style.display =
-          google.colab.kernel.accessAllowed ? 'block' : 'none';
-
-        async function convertToInteractive(key) {
-          const element = document.querySelector('#df-06f2f90a-53a9-4fd6-9cd7-4bb5ff221950');
-          const dataTable =
-            await google.colab.kernel.invokeFunction('convertToInteractive',
-                                                     [key], {});
-          if (!dataTable) return;
-
-          const docLinkHtml = 'Like what you see? Visit the ' +
-            '<a target="_blank" href=https://colab.research.google.com/notebooks/data_table.ipynb>data table notebook</a>'
-            + ' to learn more about interactive tables.';
-          element.innerHTML = '';
-          dataTable['output_type'] = 'display_data';
-          await google.colab.output.renderOutput(dataTable, element);
-          const docLink = document.createElement('div');
-          docLink.innerHTML = docLinkHtml;
-          element.appendChild(docLink);
-        }
-      </script>
-    </div>
-  </div>
 
 ```python
 holdout_reviews.loc[11204, 'review']
@@ -2394,9 +2182,7 @@ Next there are two reviews discussing **sound issues**. Because this is a common
 holdout_reviews.loc[[9, 123052], ['rating', 'positive prob mymodel', 'positive prob sstmodel', 'polarity score']]
 ```
 
-  <div id="df-37cb415b-7a37-41af-b39d-2b471f0f43e3">
-    <div class="colab-df-container">
-      <div>
+<div>
 <table class="dataframe">
   <thead>
     <tr style="text-align: right;">
@@ -2425,81 +2211,6 @@ holdout_reviews.loc[[9, 123052], ['rating', 'positive prob mymodel', 'positive p
   </tbody>
 </table>
 </div>
-      <button class="colab-df-convert" onclick="convertToInteractive('df-37cb415b-7a37-41af-b39d-2b471f0f43e3')"
-              title="Convert this dataframe to an interactive table."
-              style="display:none;">
-
-  <svg xmlns="http://www.w3.org/2000/svg" height="24px"viewBox="0 0 24 24"
-       width="24px">
-    <path d="M0 0h24v24H0V0z" fill="none"/>
-    <path d="M18.56 5.44l.94 2.06.94-2.06 2.06-.94-2.06-.94-.94-2.06-.94 2.06-2.06.94zm-11 1L8.5 8.5l.94-2.06 2.06-.94-2.06-.94L8.5 2.5l-.94 2.06-2.06.94zm10 10l.94 2.06.94-2.06 2.06-.94-2.06-.94-.94-2.06-.94 2.06-2.06.94z"/><path d="M17.41 7.96l-1.37-1.37c-.4-.4-.92-.59-1.43-.59-.52 0-1.04.2-1.43.59L10.3 9.45l-7.72 7.72c-.78.78-.78 2.05 0 2.83L4 21.41c.39.39.9.59 1.41.59.51 0 1.02-.2 1.41-.59l7.78-7.78 2.81-2.81c.8-.78.8-2.07 0-2.86zM5.41 20L4 18.59l7.72-7.72 1.47 1.35L5.41 20z"/>
-  </svg>
-      </button>
-
-  <style>
-    .colab-df-container {
-      display:flex;
-      flex-wrap:wrap;
-      gap: 12px;
-    }
-
-    .colab-df-convert {
-      background-color: #E8F0FE;
-      border: none;
-      border-radius: 50%;
-      cursor: pointer;
-      display: none;
-      fill: #1967D2;
-      height: 32px;
-      padding: 0 0 0 0;
-      width: 32px;
-    }
-
-    .colab-df-convert:hover {
-      background-color: #E2EBFA;
-      box-shadow: 0px 1px 2px rgba(60, 64, 67, 0.3), 0px 1px 3px 1px rgba(60, 64, 67, 0.15);
-      fill: #174EA6;
-    }
-
-    [theme=dark] .colab-df-convert {
-      background-color: #3B4455;
-      fill: #D2E3FC;
-    }
-
-    [theme=dark] .colab-df-convert:hover {
-      background-color: #434B5C;
-      box-shadow: 0px 1px 3px 1px rgba(0, 0, 0, 0.15);
-      filter: drop-shadow(0px 1px 2px rgba(0, 0, 0, 0.3));
-      fill: #FFFFFF;
-    }
-  </style>
-
-      <script>
-        const buttonEl =
-          document.querySelector('#df-37cb415b-7a37-41af-b39d-2b471f0f43e3 button.colab-df-convert');
-        buttonEl.style.display =
-          google.colab.kernel.accessAllowed ? 'block' : 'none';
-
-        async function convertToInteractive(key) {
-          const element = document.querySelector('#df-37cb415b-7a37-41af-b39d-2b471f0f43e3');
-          const dataTable =
-            await google.colab.kernel.invokeFunction('convertToInteractive',
-                                                     [key], {});
-          if (!dataTable) return;
-
-          const docLinkHtml = 'Like what you see? Visit the ' +
-            '<a target="_blank" href=https://colab.research.google.com/notebooks/data_table.ipynb>data table notebook</a>'
-            + ' to learn more about interactive tables.';
-          element.innerHTML = '';
-          dataTable['output_type'] = 'display_data';
-          await google.colab.output.renderOutput(dataTable, element);
-          const docLink = document.createElement('div');
-          docLink.innerHTML = docLinkHtml;
-          element.appendChild(docLink);
-        }
-      </script>
-    </div>
-  </div>
 
 ```python
 holdout_reviews.loc[9, 'review']
@@ -2570,9 +2281,7 @@ Here is the whole holdout dataframe. I mostly went over the reviews in which the
 holdout_reviews[['review', 'rating', 'positive prob mymodel', 'positive prob sstmodel', 'polarity score']].head(17) # Making sure all 17 rows are shown
 ```
 
-  <div id="df-629a4f31-89fd-4ca1-9213-51fae0e816c2">
-    <div class="colab-df-container">
-      <div>
+<div>
 <table class="dataframe">
   <thead>
     <tr style="text-align: right;">
@@ -2724,81 +2433,6 @@ holdout_reviews[['review', 'rating', 'positive prob mymodel', 'positive prob sst
   </tbody>
 </table>
 </div>
-      <button class="colab-df-convert" onclick="convertToInteractive('df-629a4f31-89fd-4ca1-9213-51fae0e816c2')"
-              title="Convert this dataframe to an interactive table."
-              style="display:none;">
-
-  <svg xmlns="http://www.w3.org/2000/svg" height="24px"viewBox="0 0 24 24"
-       width="24px">
-    <path d="M0 0h24v24H0V0z" fill="none"/>
-    <path d="M18.56 5.44l.94 2.06.94-2.06 2.06-.94-2.06-.94-.94-2.06-.94 2.06-2.06.94zm-11 1L8.5 8.5l.94-2.06 2.06-.94-2.06-.94L8.5 2.5l-.94 2.06-2.06.94zm10 10l.94 2.06.94-2.06 2.06-.94-2.06-.94-.94-2.06-.94 2.06-2.06.94z"/><path d="M17.41 7.96l-1.37-1.37c-.4-.4-.92-.59-1.43-.59-.52 0-1.04.2-1.43.59L10.3 9.45l-7.72 7.72c-.78.78-.78 2.05 0 2.83L4 21.41c.39.39.9.59 1.41.59.51 0 1.02-.2 1.41-.59l7.78-7.78 2.81-2.81c.8-.78.8-2.07 0-2.86zM5.41 20L4 18.59l7.72-7.72 1.47 1.35L5.41 20z"/>
-  </svg>
-      </button>
-
-  <style>
-    .colab-df-container {
-      display:flex;
-      flex-wrap:wrap;
-      gap: 12px;
-    }
-
-    .colab-df-convert {
-      background-color: #E8F0FE;
-      border: none;
-      border-radius: 50%;
-      cursor: pointer;
-      display: none;
-      fill: #1967D2;
-      height: 32px;
-      padding: 0 0 0 0;
-      width: 32px;
-    }
-
-    .colab-df-convert:hover {
-      background-color: #E2EBFA;
-      box-shadow: 0px 1px 2px rgba(60, 64, 67, 0.3), 0px 1px 3px 1px rgba(60, 64, 67, 0.15);
-      fill: #174EA6;
-    }
-
-    [theme=dark] .colab-df-convert {
-      background-color: #3B4455;
-      fill: #D2E3FC;
-    }
-
-    [theme=dark] .colab-df-convert:hover {
-      background-color: #434B5C;
-      box-shadow: 0px 1px 3px 1px rgba(0, 0, 0, 0.15);
-      filter: drop-shadow(0px 1px 2px rgba(0, 0, 0, 0.3));
-      fill: #FFFFFF;
-    }
-  </style>
-
-      <script>
-        const buttonEl =
-          document.querySelector('#df-629a4f31-89fd-4ca1-9213-51fae0e816c2 button.colab-df-convert');
-        buttonEl.style.display =
-          google.colab.kernel.accessAllowed ? 'block' : 'none';
-
-        async function convertToInteractive(key) {
-          const element = document.querySelector('#df-629a4f31-89fd-4ca1-9213-51fae0e816c2');
-          const dataTable =
-            await google.colab.kernel.invokeFunction('convertToInteractive',
-                                                     [key], {});
-          if (!dataTable) return;
-
-          const docLinkHtml = 'Like what you see? Visit the ' +
-            '<a target="_blank" href=https://colab.research.google.com/notebooks/data_table.ipynb>data table notebook</a>'
-            + ' to learn more about interactive tables.';
-          element.innerHTML = '';
-          dataTable['output_type'] = 'display_data';
-          await google.colab.output.renderOutput(dataTable, element);
-          const docLink = document.createElement('div');
-          docLink.innerHTML = docLinkHtml;
-          element.appendChild(docLink);
-        }
-      </script>
-    </div>
-  </div>
 
 ## 6. On Model Confidence
 Something that jumps out when looking at the distributions of predicted probabilities is that the distilBERT fine-tuned on SST2 is *more confident* of its predictions than our model. The former mostly assigns probabilities close to 0 and 1 whereas the latter outputs more probabilities in between.
@@ -2823,7 +2457,7 @@ evaluate_and_plot(
      'recall': array([0.60588235, 0.50151057, 0.51874367, 0.36597428, 0.84226491])}
 
     
-![](./output_82_2.png)
+![A five-by-five grid of histograms of predicted rating probabilities at the 6,000-step checkpoint, one row per true star rating. The distributions are noticeably more spread out than at 17,000 steps.](./output_82_2.png)
     
 
 ```python
@@ -2840,7 +2474,7 @@ evaluate_and_plot(
      'recall': array([0.59117647, 0.48539778, 0.44883485, 0.53610287, 0.79271992])}
 
     
-![](./output_83_2.png)
+![A five-by-five grid of histograms of predicted rating probabilities at the 40,000-step checkpoint, one row per true star rating. The distributions are far more concentrated at zero and one.](./output_83_2.png)
     
 
 ```python
@@ -2857,7 +2491,7 @@ evaluate_and_plot(
     {'accuracy': 0.8744, 'recall': array([0.93233333, 0.7875    ])}
 
     
-![](./output_84_2.png)
+![Two histograms of the predicted probability that a review is positive at the 6,000-step checkpoint, split by true sentiment.](./output_84_2.png)
     
 
 ```python
@@ -2874,4 +2508,4 @@ evaluate_and_plot(
     {'accuracy': 0.8762, 'recall': array([0.895, 0.848])}
 
     
-![](./output_85_2.png)
+![Two histograms of the predicted probability that a review is positive at the 40,000-step checkpoint, split by true sentiment.](./output_85_2.png)

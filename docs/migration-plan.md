@@ -1,6 +1,6 @@
 # Migration plan: fastpages/Jekyll → Astro
 
-**Status:** Phase 4 complete. Next: Phase 5.
+**Status:** Phase 5 complete. Next: Phase 6.
 **Audience:** the implementer (human or agent). Start with `/migrate`.
 
 The Status line above is the handoff signal — keep it in the form
@@ -257,6 +257,9 @@ paths green.
 
 Ask before adding anything not on this list.
 
+**Gate:** `astro check` clean, the parity test still green in full, and every
+item above visible in a preview build under both colour schemes.
+
 ### Phase 6 — Tests and docs
 
 Testing, proportionate to a five-post blog — these four, no more:
@@ -435,3 +438,16 @@ Math plugins go through `processor: unified({...})` from `@astrojs/markdown-rema
 single lines in grades-analysis, which remark-math renders inline, not display — the
 delimiters were rewrapped (no math or prose changed). Pagefind (Component UI) indexes
 after `astro build`, so **search is empty under `astro dev`**; use `npm run preview`.
+
+<!-- Phase 5: -->
+
+**Phase 5** — This phase had no gate; one is added above, matching the others.
+Colab wraps every dataframe in a widget (container div, button, unscoped
+`<style>`, a `<script>` calling `google.colab`) and it survived Phase 2 into the
+two 2022-10-21 posts. Fixed here at the owner's request: `COLAB_TABLE` in
+`scripts/convert-notebooks.py` keeps the table and drops the widget, and the
+committed posts were rewritten with that same regex.
+`<Image>` was not needed — markdown images already build to sized, lazy webp, so
+the work was the 31 alt texts. Tags are labels, not links: no tag pages, no new
+URLs. Colours live only in `:root` and one `prefers-color-scheme` block.
+`docs/decisions.md` is 79 lines against its 40-line budget — cut in Phase 6.

@@ -4,6 +4,27 @@ description: "We will explore a source of data leakage in the popular Titanic co
 date: 2022-04-11
 notebook: "notebooks/2022-04-11-titanic-leak.ipynb"
 archived: true
+tags: ["machine learning", "data leakage", "cross-validation", "XGBoost", "Kaggle"]
+tldr:
+  - "Passengers travelling together on the Titanic mostly lived or died
+    together, and Kaggle's train-test split cuts straight through those groups.
+    A model can therefore predict a passenger from the fate of their family in
+    the training set — information nobody would have had before the ship sank."
+  - "The fix is a leak-proof cross-validation: reconstruct the travelling
+    groups from names, tickets and cabins, then split so that a group is
+    entirely in train or entirely in test, never both."
+  - "With the leak closed, a tuned XGBoost still beats the baselines — 0.822
+    mean accuracy against 0.801 for the enhanced gender model and 0.780 for
+    predicting on sex alone. There is real signal in the data beyond the
+    leakage."
+  - "Given the chance, the model does seem to take it. With the truncated-ticket
+    feature its leaky-CV accuracy sits above its leak-proof accuracy, and
+    dropping that feature reverses the gap. Its whole advantage over the
+    baselines comes from passengers travelling in groups: on the 41% travelling
+    alone it only matches the baselines, or does worse."
+  - "The post's own caveat, kept here: most of these gaps are one to two
+    standard errors wide, so they are suggestive rather than settled. Paired
+    hypothesis tests across the folds are named as the next step."
 ---
 
 <details>
@@ -949,7 +970,7 @@ ax1.hist(survival_rates);
 </details>
 
     
-![](./output_73_0.png)
+![Two histograms over random train-test splits: the fraction of passenger groups divided between train and test, and the survival rate in the test set.](./output_73_0.png)
     
 
 The Kaggle test set seems to be very typical, at least as far as the survival rate and passenger groups are concerned. In fact, both values (0.61 and 0.38) are close to the mean for both distributions (almost suspiciously close). This suggests that the test set was either drawn at random or specifically chosen to have a typical survival rate.

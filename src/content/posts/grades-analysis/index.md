@@ -4,6 +4,24 @@ description: "We explore the possible effects of student groups on final grades.
 date: 2022-03-19
 notebook: "notebooks/2022-03-19-grades-analysis.ipynb"
 archived: true
+tags: ["statistics", "hypothesis testing", "bootstrap", "ANOVA", "simulation"]
+tldr:
+  - "Three sections of a flipped-classroom course, with students randomly
+    assigned to breakout groups of about four. The question: did the group you
+    landed in move your final grade?"
+  - "No — not detectably. Across four tests (permutation, semiparametric
+    bootstrap, ANOVA F, Welch F) the smallest p-value was 0.053, in Section 2.
+    Correcting for the three sections needs a rejection threshold around 0.15
+    before that counts, under Benjamini-Hochberg as well as Bonferroni."
+  - "That is a null result, not evidence of no effect. Simulation puts the
+    power of all four tests low at these group sizes: only an effect as large
+    as the observed spread in sample group means is reliably detected."
+  - "The semiparametric bootstrap is by far the weakest of the four at groups
+    of four, and catches up with the others at groups of ten — the group size
+    is the problem, not the method."
+  - "The permutation test and the uncorrected F-test tracked each other to
+    within 0.01 on all three sections, which suggests ANOVA holds up here
+    despite the grades being clearly left-skewed rather than normal."
 ---
 
 The Covid pandemic arrived in the US while I was a visiting professor at Lehigh University. Like many, we had to quickly adapt to a rapidly evolving situation and transition from a physical classroom one week to a fully virtual format the next. To capitalize on the situation, I implemented a flipped classroom with prerecorded lectures. This entailed the students working together on exercises over Zoom divided into breakout rooms. The breakout room groups were created at random for fairness and retained throughout the whole semester. The main rationale for not changing the groups is that the students needed time to get to know each other and figure out a team-based work flow (students in each group had to prepare shared answers on OneNote). However, the downside was that some groups worked together better than others.
@@ -345,7 +363,7 @@ ax.hist(all_sections.grades, bins='auto');
 ```
 
     
-![](./output_29_0.png)
+![Histogram of the pooled final grades from all three sections, clearly skewed to the left.](./output_29_0.png)
     
 
 The data appears to have a clear left skew and thus does not look normal (more on that below). This made wonder why the data would differ from normality in this way and if this is a typical grade distribution for an exam. I found a 2019 [paper](https://stanford.edu/~cpiech/bio/papers/gradesAreNotNormal.pdf) (citation below), in which the authors analyzed 4000 assignments graded on Gradescope and essentially determined that most of the grade distributions were too skewed to be normal. Interestingly, the skewness was usually negative, just as in our case. They found the logit-normal distribution to be a good fit for exam grade distributions.
@@ -386,7 +404,7 @@ axs[2, 1].set_title('Synthetic normal data with large groups residuals');
 ```
 
     
-![](./output_32_0.png)
+![A three-by-two grid of histograms. Each row pairs a grade distribution with the residuals estimated from it: Section 1, synthetic normal data with small groups, and synthetic normal data with ten groups of eight.](./output_32_0.png)
     
 
 The histograms seem to make clear that the empirical distributions of the residuals (pictured on the right) are not a good approximation of the underlying distribution (pictured on the left). This holds also for the synthetic data. **These small sample effects might explain the low power of the bootstrap we will observe in the simulations below and why the power of the bootstrap converges with the other tests for larger group sizes.**
@@ -405,7 +423,7 @@ print(f'The sample skew is {st.skew(all_sections.grades)} and the sample kurtosi
     The sample skew is -1.0902692480611051 and the sample kurtosis is 1.3753992488399467.
 
     
-![](./output_35_1.png)
+![QQ plot of the pooled grades against a normal distribution. The points bend away from the reference line at both tails.](./output_35_1.png)
     
 
 Now we compute compute the sample skew and kurtosis for a random sample of a normal distribution, as a reference for our data. We also look at the QQ plot.
@@ -419,7 +437,7 @@ print(f'The sample skew is {st.skew(normal_sample)} and the sample kurtosis is {
     The sample skew is -0.1817125808235642 and the sample kurtosis is -0.34271547675743186.
 
     
-![](./output_37_1.png)
+![QQ plot of a random sample of 110 points drawn from a normal distribution, shown as a reference. The points follow the line closely.](./output_37_1.png)
     
 
 After running the cell above a couple of times, it is evident that a sample skew of -1 and a sample kurtosis of 1.4 are very unlikely for data sampled from a normal distribution. What this means is that the the grades distribution is skewed to the left (as we observed above) and has a longer tails than the normal distribution (a long *left* tail, really).
@@ -633,7 +651,7 @@ print(f'The median of the group means is {central_mean} and the median of the gr
     The median of the group means is 86.5875 and the median of the group standard deviations is 6.331982950879348.
 
     
-![](./output_57_1.png)
+![Two histograms side by side: the means of every group across all three sections, and their standard deviations.](./output_57_1.png)
     
 
 ```python
@@ -745,7 +763,7 @@ pd.Series(dict(result[0]))
     dtype: float64
 
     
-![](./output_63_2.png)
+![P-value histograms for the four tests over 10,000 simulations: groups of about four, as in Section 1, equal means, equal standard deviations, normal data.](./output_63_2.png)
     
 
 Firstly, the permutation test and the uncorrected F-test (ANOVA) have almost identical p-values and they are also performing the best by far. Their rejection rates are just under the level $0.05$, which is perfect. The distributions look uniformly distributed.
@@ -774,7 +792,7 @@ pd.Series(dict(result[0]))
     dtype: float64
 
     
-![](./output_65_2.png)
+![P-value histograms for the four tests over 10,000 simulations: ten groups of ten, equal means, equal standard deviations, normal data.](./output_65_2.png)
     
 
 From what we have seen above, it seems that the bootstrap and Welch F-test are not performing well for the small group sizes present in our data (around 4), while doing reasonably well for size 10 groups. The permutation test and the regular uncorrected F-test (one-way ANOVA) are still the best but not by much.
@@ -799,7 +817,7 @@ pd.Series(dict(result[0]))
     dtype: float64
 
     
-![](./output_67_2.png)
+![P-value histograms for the four tests over 10,000 simulations: groups of about four, as in Section 1, equal means, equal standard deviations, empirical-distribution data.](./output_67_2.png)
     
 
 Now let's make the groups larger again.
@@ -822,7 +840,7 @@ pd.Series(dict(result[0]))
     dtype: float64
 
     
-![](./output_69_2.png)
+![P-value histograms for the four tests over 10,000 simulations: ten groups of ten, equal means, equal standard deviations, empirical-distribution data.](./output_69_2.png)
     
 
 We can see that the empirical distribution and the normal distribution yield pretty results. The biggest difference is for the Welch F-test, which has an even worse rejection rate for the empirical distribution. This might be due to the long left tail. **We will only use the empirical distribution function from now on.**
@@ -851,7 +869,7 @@ pd.Series(dict(result[0]))
     dtype: float64
 
     
-![](./output_72_2.png)
+![P-value histograms for the four tests over 10,000 simulations: groups of about four, as in Section 1, equal means, weakly varying standard deviations, empirical-distribution data.](./output_72_2.png)
     
 
 The p-values are almost identical to the case with constant standard deviation. They are very slightly larger in this case (as was expected) but not significantly. The same is true for **larger group sizes**:
@@ -874,7 +892,7 @@ pd.Series(dict(result[0]))
     dtype: float64
 
     
-![](./output_74_2.png)
+![P-value histograms for the four tests over 10,000 simulations: ten groups of ten, equal means, weakly varying standard deviations, empirical-distribution data.](./output_74_2.png)
     
 
 If we let the **standard deviation vary strongly** between the groups something interesting happens: some p-value distributions have a peak at 1 as well as the usual peak at 0. This is the case also for very large group sizes. For instance, we let the groups be of size 50 below, which is much larger than the groups we have been considering. The peaks do not seem to change much as we vary the group sizes from 4 to 10 to 50.
@@ -899,7 +917,7 @@ pd.Series(dict(result[0]))
     dtype: float64
 
     
-![](./output_76_2.png)
+![P-value histograms for the four tests over 10,000 simulations: groups of about four, as in Section 1, equal means, strongly varying standard deviations, empirical-distribution data.](./output_76_2.png)
     
 
 ```python
@@ -922,7 +940,7 @@ pd.Series(dict(result[0]))
     dtype: float64
 
     
-![](./output_77_2.png)
+![P-value histograms for the four tests over 10,000 simulations: ten groups of fifty, equal means, strongly varying standard deviations, empirical-distribution data.](./output_77_2.png)
     
 
 #### Unequal means
@@ -949,7 +967,7 @@ pd.Series(dict(result[0]))
     dtype: float64
 
     
-![](./output_79_2.png)
+![P-value histograms for the four tests over 10,000 simulations: groups of about four, as in Section 1, weakly varying means, equal standard deviations, empirical-distribution data.](./output_79_2.png)
     
 
 We see that the tests are very weak in this case, due to the small effect size (weakly varying means) and the small group sizes. The bootstrap is still performing terribly and the permutation tests and ANOVA rejection rates are barely higher than the level of the test.
@@ -976,7 +994,7 @@ pd.Series(dict(result[0]))
     dtype: float64
 
     
-![](./output_81_2.png)
+![P-value histograms for the four tests over 10,000 simulations: ten groups of ten, weakly varying means, equal standard deviations, empirical-distribution data.](./output_81_2.png)
     
 
 Leaving the Welch F-test aside, the power has increased for larger groups, but it is still not great. It is worth noting that the bootstrap now yields almost the same p-value distribution as the permutation test and regular F-test, underscoring how the bootstrap does fine for larger groups, but just can't deal with the small groups in our data.
@@ -1001,7 +1019,7 @@ pd.Series(dict(result[0]))
     dtype: float64
 
     
-![](./output_84_2.png)
+![P-value histograms for the four tests over 10,000 simulations: groups of about four, as in Section 1, strongly varying means, equal standard deviations, empirical-distribution data.](./output_84_2.png)
     
 
 ```python
@@ -1022,7 +1040,7 @@ pd.Series(dict(result[0]))
     dtype: float64
 
     
-![](./output_85_2.png)
+![P-value histograms for the four tests over 10,000 simulations: ten groups of ten, strongly varying means, equal standard deviations, empirical-distribution data.](./output_85_2.png)
     
 
 As we can see, going from the middle $33\%$ group means to the middle $80\%$ group means made an enormous difference. At around $0.4$, the power is still not great.
@@ -1047,7 +1065,7 @@ pd.Series(dict(result[0]))
     dtype: float64
 
     
-![](./output_87_2.png)
+![P-value histograms for the four tests over 10,000 simulations: groups of about four, as in Section 1, very strongly varying means, equal standard deviations, empirical-distribution data.](./output_87_2.png)
     
 
 We see that in the extremely varying means scenario the power of all tests other than the bootstrap is reasonably good ($0.85$). Surprisingly, the Welch corrected F-test has a lower power that the uncorrected F-test in this case, even though in most other cases it had a higher power (even *too* high, for equal means).
