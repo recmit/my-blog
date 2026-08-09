@@ -4,6 +4,26 @@ description: "We train a podcast recommender using matrix-based collaborative fi
 date: 2022-03-19
 notebook: "notebooks/2022-03-19-podcasts-recommender.ipynb"
 archived: true
+tags: ["recommender systems", "collaborative filtering", "ALS", "PCA", "podcasts"]
+tldr:
+  - "Nearly a million Apple Podcasts reviews from Kaggle, curated down to 933
+    podcasts and 10,607 users with 40,585 positive ratings — a sparse matrix,
+    about 0.4% filled."
+  - "Almost every rating is five stars, so the star values carry little signal.
+    The ratings are treated as *implicit* feedback instead — a preference plus
+    a confidence, with a missing rating read as weak evidence against — and
+    fitted with Alternating Least Squares."
+  - "That works: precision@1 of 9.3% against 2.9% for a recommend-the-most-
+    popular baseline, and the per-podcast similar-item lists look sensible by
+    eye."
+  - "Running PCA over the 50-dimensional podcast factors gives two readable
+    axes: the first runs from self-improvement to pure entertainment (true
+    crime at the far end), the second separates podcasts aimed at children from
+    those aimed at adults. Both fall out of ratings alone — the model never
+    sees a title, a description or a category."
+  - "The main caveat is the dataset: its curator confirmed that many of the
+    most popular podcasts were left out deliberately, and without knowing the
+    selection rule there is no correcting for the resulting sampling bias."
 ---
 
 Nowadays we encounter recommender systems on a daily basis in search engines, streaming platforms, and social media. There exist many different mechanisms behind recommender systems, but we will focus on a a class of methods known as **collaborative filtering**. In a nutshell, this approach consists of taking the set of all known user preferences and using that to "predict" the user's preference for an **item** (movie, song, news article) that the user hasn't seen yet (or for which the user hasn't indicated a preference). The basis for establishing this preference depends on the context. Some examples include user ratings on Netflix, or how many times a user has listened to a song on Spotify.
