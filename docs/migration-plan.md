@@ -466,5 +466,5 @@ both configs — a new test named the wrong way is silently claimed by the wrong
 runner. `npm test` builds first on purpose; all four checks read `dist/`.
 This sandbox's `/opt/pw-browsers` Chromium never matches the revision
 `@playwright/test` pins, so `playwright.config.ts` points at it by path when it
-exists; the step above now says so. `actions/setup-node` is on a `v4` tag, not a
-SHA like the rest of the repo — pin it when someone can resolve one.
+exists; the step above now says so. Actions are SHA-pinned — `git ls-remote`
+resolves tags here even though `api.github.com` 403s.
