@@ -1,7 +1,6 @@
 # Code map
 
-Where things live and why. This describes the target structure — the Astro tree
-arrives with the migration ([`migration-plan.md`](migration-plan.md)).
+Where things live and why.
 
 ## Content
 
@@ -28,28 +27,21 @@ arrives with the migration ([`migration-plan.md`](migration-plan.md)).
 |---|---|
 | `astro.config.mjs` | Integrations, Markdown pipeline, URL format |
 | `scripts/convert-notebooks.sh` | One-time `.ipynb` → Markdown. **Not run in CI.** It ran once; its output is committed. Installs its two dependencies, then runs the `.py` |
-| `scripts/convert-notebooks.py` | The conversion itself: drops fastpages `#hide` cells, folds `#collapse-*` into `<details>`, strips Colab's dataframe widgets, takes front matter from `_posts/` |
+| `scripts/convert-notebooks.py` | The conversion itself: drops fastpages `#hide` cells, folds `#collapse-*` into `<details>`, strips Colab's dataframe widgets. Took front matter from Jekyll's `_posts/`, deleted at the cutover — so it is now a record of how the posts were made, not a runnable tool |
 | `scripts/nbtemplate/` | nbconvert template that emits those `<details>` wrappers |
 | `tests/expected-urls.json` | The published URL surface, taken from the live deployment |
 | `tests/*.test.ts` | vitest, run against `dist/`: URL parity and the internal link check |
 | `tests/smoke.spec.ts` | Playwright. The only check that renders the site — needs a build and `astro preview`, both of which its config starts |
 | `vitest.config.ts` / `playwright.config.ts` | Which runner claims which files: `.test.ts` is vitest's, `.spec.ts` is Playwright's |
-| `.github/workflows/checks.yml` | The four checks, on every push |
-| `.github/workflows/deploy.yml` | Build → GitHub Pages. Arrives at the cutover, replacing the Jekyll `ci.yaml` |
-| `.claude/skills/migrate/` | The `/migrate` command. Temporary — delete once the migration lands |
-
-## Still present, due for deletion
-
-The Jekyll site fastpages built. Removed in the final migration phase, not
-before: `_config.yml`, `Gemfile*`, `_layouts/`, `_includes/`, `_sass/`,
-`_plugins/`, `_posts/`, `_pages/`, `_action_files/`, `_fastpages_docs/`,
-`_word/`, `assets/`, `images/`, `Makefile`, `settings.ini`,
-`docker-compose.yml`, `index.html`, `.devcontainer.json`.
-
-Note that `_posts/*.md` is generated output, not authored content — the
-notebooks are the originals.
+| `.github/workflows/checks.yml` | The four checks, on every push, every branch |
+| `.github/workflows/deploy.yml` | Build → GitHub Pages, on pushes to `master`. Uploads `dist/` as a Pages artifact; there is no deploy branch |
 
 ## Not in this repo
 
-DNS for `david-recio.com`, the Formspree endpoint, and the Google Analytics
-property are configured outside it. Changing them is not a code change.
+DNS for `david-recio.com`, the Formspree endpoint, the Google Analytics
+property, and the Pages source setting (**GitHub Actions**, not a branch — the
+deploy workflow depends on it) are configured outside it. Changing them is not
+a code change.
+
+The `gh-pages` branch still holds the last Jekyll deployment, as the record of
+what the site was before the migration. Nothing writes to it.

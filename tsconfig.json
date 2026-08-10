@@ -1,20 +1,5 @@
 {
   "extends": "astro/tsconfigs/strict",
   "include": [".astro/types.d.ts", "**/*"],
-  "exclude": [
-    "dist",
-    "_site",
-    "node_modules",
-    "assets",
-    "_action_files",
-    "_fastpages_docs",
-    "_includes",
-    "_layouts",
-    "notebooks",
-    "_pages",
-    "_plugins",
-    "_sass",
-    "_word",
-    "vendor"
-  ]
+  "exclude": ["dist", "node_modules", "notebooks"]
 }

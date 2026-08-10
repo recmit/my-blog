@@ -1,18 +1,15 @@
 *.swp
 ~*
 *~
-_site
-.sass-cache
-.jekyll-cache
-.jekyll-metadata
-vendor
-notebooks/.ipynb_checkpoints
-__pycache__
 .DS_Store
+__pycache__
+notebooks/.ipynb_checkpoints
+.venv-nbconvert
+
+# Astro
 node_modules
 dist
 .astro
-.venv-nbconvert
 
 # Playwright
 test-results
