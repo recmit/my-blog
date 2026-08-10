@@ -190,6 +190,10 @@ blockquote {
 
 /* Home -------------------------------------------------------------------- */
 
+.home .page-heading {
+  font-size: 1.5rem;
+}
+
 .home-intro {
   max-width: var(--measure);
   font-size: 1.15rem;
