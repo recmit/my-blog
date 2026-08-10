@@ -19,6 +19,12 @@ Those four are the whole test suite, and all four run in CI on every push. They
 check the built site, not the source — so `npm test` builds first, and a stale
 `dist/` is never what you are testing.
 
+If you are an agent, run `ASTRO_PREVIEW_BACKGROUND=1 npm test`. Astro 7's
+`astro preview` detects an agentic environment and daemonises itself, which
+Playwright reads as the server exiting early — the smoke tests then fail before
+running. That variable suppresses the detection, leaving preview in the
+foreground. CI is unaffected, so this never shows up on a push.
+
 ## Layout
 
 Where things live: [`docs/code-map.md`](docs/code-map.md).
