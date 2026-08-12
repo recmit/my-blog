@@ -57,5 +57,4 @@ Why they're that way: [`docs/decisions.md`](docs/decisions.md).
 
 ## Ask first
 
-Before adding a dependency, a client-side island, a new top-level directory, or
-anything outside the current phase of the migration plan.
+Before adding a dependency, a client-side island, or a new top-level directory.
