@@ -243,7 +243,7 @@ def convert(path: Path, exporter: MarkdownExporter) -> tuple[str, int]:
     meta["date"] = date
     meta["notebook"] = f"notebooks/{path.name}"
     meta["archived"] = True
-    # `tldr` and `tags` are authored in Phase 5, not derived from the notebook.
+    # `tldr` and `tags` are hand-authored, not derived from the notebook.
 
     index = post_dir / "index.md"
     index.write_text(front_matter(meta) + body, encoding="utf8")

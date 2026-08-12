@@ -3,7 +3,7 @@
  * resolve to a file in `dist/`.
  *
  * `tests/urls.test.ts` protects the URLs the outside world links to. This one
- * protects the links the site makes to itself — the ones the Phase 2 notebook
+ * protects the links the site makes to itself — the ones the notebook
  * conversion rewrote by hand, where a stale `../images/` path builds cleanly
  * and 404s only when someone clicks it.
  */
